@@ -1,4 +1,3 @@
-# test_crud.py
 import pytest
 from app.crud import create_item, delete_item, get_item, get_items, update_item
 from sqlalchemy import Column, Integer, String, create_engine
@@ -23,9 +22,6 @@ class ItemCreate:
 
 
 # Patch imports in your_module
-import app.models as models
-import app.schemas as schemas
-
 models = type("models", (), {"Item": Item})
 schemas = type("schemas", (), {"ItemCreate": ItemCreate})
 
