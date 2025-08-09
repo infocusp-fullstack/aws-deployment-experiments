@@ -1,7 +1,14 @@
 repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.6.8 # Use latest Ruff version
+    rev: v0.6.8
     hooks:
       - id: ruff
-        args: [--fix, --select, I] # Fix and sort imports
+        name: ruff-fix-imports
+        args: ["--fix", "--select", "I"]
+
       - id: ruff-format
+        name: ruff-format
+
+      - id: ruff
+        name: ruff-lint
+        args: ["--ignore", "I"]
