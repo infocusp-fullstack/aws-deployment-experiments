@@ -8,6 +8,13 @@ Base = declarative_base()
 
 
 class Item(Base):
+    """Item model for the database.
+    Attributes:
+        id (int): Unique identifier for the item.
+        name (str): Name of the item.
+        description (str): Description of the item.
+    """
+
     __tablename__ = "items"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -16,12 +23,14 @@ class Item(Base):
 
 
 class ItemCreate:
+    """Model for creating a new item."""
+
     def __init__(self, name: str, description: str):
         self.name = name
         self.description = description
 
 
-# Patch imports in your_module
+# Patch imports
 models = type("models", (), {"Item": Item})
 schemas = type("schemas", (), {"ItemCreate": ItemCreate})
 
@@ -51,6 +60,7 @@ def test_create_item(db_session):
 
 
 def test_get_items(db_session):
+    """Test retrieving multiple items from the database."""
     db_session.add(Item(name="Item 1", description="Desc 1"))
     db_session.add(Item(name="Item 2", description="Desc 2"))
     db_session.commit()
@@ -61,6 +71,7 @@ def test_get_items(db_session):
 
 
 def test_get_item(db_session):
+    """Test retrieving a single item by ID."""
     new_item = Item(name="Single", description="Only one")
     db_session.add(new_item)
     db_session.commit()
@@ -71,6 +82,7 @@ def test_get_item(db_session):
 
 
 def test_update_item(db_session):
+    """Test updating an existing item."""
     new_item = Item(name="Old", description="Old desc")
     db_session.add(new_item)
     db_session.commit()
@@ -83,6 +95,7 @@ def test_update_item(db_session):
 
 
 def test_delete_item(db_session):
+    """Test deleting an item from the database."""
     new_item = Item(name="ToDelete", description="Delete me")
     db_session.add(new_item)
     db_session.commit()
