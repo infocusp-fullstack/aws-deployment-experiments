@@ -1,11 +1,8 @@
 # test_crud.py
 import pytest
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, declarative_base
-from sqlalchemy import Column, Integer, String
-
-from app.crud import create_item, get_items, get_item, update_item, delete_item
-
+from app.crud import create_item, delete_item, get_item, get_items, update_item
+from sqlalchemy import Column, Integer, String, create_engine
+from sqlalchemy.orm import declarative_base, sessionmaker
 
 # ---------- Mock Models & Schemas ----------
 Base = declarative_base()
