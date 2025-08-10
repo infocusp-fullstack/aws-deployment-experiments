@@ -3,77 +3,77 @@ from sqlalchemy.orm import Session
 from . import models, schemas
 
 
-def create_item(db: Session, item: schemas.ItemCreate) -> models.Item:
-    """Create a new item in the database.
+def create_todo(db: Session, todo: schemas.TodoCreate) -> models.Todo:
+    """Create a new todo in the database.
 
     Args:
         db (Session): Database session.
-        item (schemas.ItemCreate): Item data to create.
+        todo (schemas.TodoCreate): Todo data to create.
 
     Returns:
-        models.Item: The created item.
+        models.Todo: The created todo.
     """
-    db_item = models.Item(name=item.name, description=item.description)
-    db.add(db_item)
+    db_todo = models.Todo(name=todo.name, description=todo.description)
+    db.add(db_todo)
     db.commit()
-    db.refresh(db_item)
-    return db_item
+    db.refresh(db_todo)
+    return db_todo
 
 
-def get_items(db: Session) -> list[models.Item]:
-    """Retrieve all items from the database.
+def get_todos(db: Session) -> list[models.Todo]:
+    """Retrieve all todos from the database.
 
     Args:
         db (Session): Database session.
 
     Returns:
-        list[models.Item]: List of all items.
+        list[models.Todo]: List of all todos.
     """
-    return db.query(models.Item).all()
+    return db.query(models.Todo).all()
 
 
-def get_item(db: Session, item_id: int) -> models.Item | None:
-    """Retrieve a single item by its ID.
+def get_todo(db: Session, todo_id: int) -> models.Todo | None:
+    """Retrieve a single todo by its ID.
     Args:
         db (Session): Database session.
-        item_id (int): ID of the item to retrieve.
+        todo_id (int): ID of the todo to retrieve.
 
     Returns:
-        models.Item | None: The item if found, otherwise None.
+        models.Todo | None: The todo if found, otherwise None.
     """
-    return db.query(models.Item).filter(models.Item.id == item_id).first()
+    return db.query(models.Todo).filter(models.Todo.id == todo_id).first()
 
 
-def update_item(db: Session, item_id: int, item: schemas.ItemCreate):
-    """Update an existing item in the database.
+def update_todo(db: Session, todo_id: int, todo: schemas.TodoCreate):
+    """Update an existing todo in the database.
     Args:
         db (Session): Database session.
-        item_id (int): ID of the item to update.
-        item (schemas.ItemCreate): Updated item data.
+        todo_id (int): ID of the todo to update.
+        todo (schemas.TodoCreate): Updated todo data.
     Returns:
-        models.Item | None: The updated item if found, otherwise None.
+        models.Todo | None: The updated todot if found, otherwise None.
     """
-    db_item = get_item(db, item_id)
-    if db_item:
-        db_item.name = item.name
-        db_item.description = item.description
+    db_todo = get_todo(db, todo_id)
+    if db_todo:
+        db_todo.name = todo.name
+        db_todo.description = todo.description
         db.commit()
-        db.refresh(db_item)
-    return db_item
+        db.refresh(db_todo)
+    return db_todo
 
 
-def delete_item(db: Session, item_id: int):
-    """Delete an item from the database.
+def delete_todo(db: Session, todo_id: int) -> models.Todo | None:
+    """Delete an todo from the database.
 
     Args:
         db (Session): Database session.
-        item_id (int): ID of the item to delete.
+        todo_id (int): ID of the todo to delete.
 
     Returns:
-        models.Item | None: The deleted item if found, otherwise None.
+        models.Todo | None: The deleted todo if found, otherwise None.
     """
-    db_item = get_item(db, item_id)
-    if db_item:
-        db.delete(db_item)
+    db_todo = get_todo(db, todo_id)
+    if db_todo:
+        db.delete(db_todo)
         db.commit()
-    return db_item
+    return db_todo

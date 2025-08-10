@@ -3,16 +3,16 @@ from sqlalchemy import Column, Integer, String
 from .database import Base
 
 
-class Item(Base):
-    """Item model for the database.
+class Todo(Base):
+    """Todo model for the database.
 
     Attributes:
-        id (int): Unique identifier for the item.
-        name (str): Name of the item.
-        description (str): Description of the item.
+        id (int): Unique identifier for the todo.
+        name (str): Name of the todo.
+        description (str): Description of the todo.
     """
 
-    __tablename__ = "items"
+    __tablename__ = "todos"
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, index=True)

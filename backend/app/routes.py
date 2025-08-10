@@ -7,80 +7,80 @@ from .database import get_db
 router = APIRouter()
 
 
-@router.post("/items/", response_model=schemas.ItemRead)
-def create_item(item: schemas.ItemCreate, db: Session = Depends(get_db)):
-    """Create a new item in the database.
+@router.post("/todos/", response_model=schemas.TodoRead)
+def create_todo(todo: schemas.TodoCreate, db: Session = Depends(get_db)):
+    """Create a new todo in the database.
 
     Routes:
-        POST /items/
+        POST /todos/
     Args:
-        item (schemas.ItemCreate): Item data to create.
+        Todo (schemas.TodoCreate): Todo data to create.
         db (Session): Database session.
     """
-    return crud.create_item(db, item)
+    return crud.create_todo(db, todo)
 
 
-@router.get("/items/", response_model=list[schemas.ItemRead])
-def read_items(db: Session = Depends(get_db)):
-    """Retrieve all items from the database.
+@router.get("/todos/", response_model=list[schemas.TodoRead])
+def read_todos(db: Session = Depends(get_db)):
+    """Retrieve all todos from the database.
 
     Routes:
-        GET /items/
+        GET /todos/
     Args:
         db (Session): Database session.
     Returns:
-        list[schemas.ItemRead]: List of all items.
+        list[schemas.TodoRead]: List of all todos.
     """
-    return crud.get_items(db)
+    return crud.get_todos(db)
 
 
-@router.get("/items/{item_id}", response_model=schemas.ItemRead)
-def read_item(item_id: int, db: Session = Depends(get_db)):
-    """Retrieve a specific item by ID.
+@router.get("/todos/{todo_id}", response_model=schemas.TodoRead)
+def read_todo(todo_id: int, db: Session = Depends(get_db)):
+    """Retrieve a specific todo by ID.
 
     Args:
-        item_id (int): ID of the item to retrieve.
+        todo_id (int): ID of the todo to retrieve.
         db (Session): Database session.
 
     Returns:
-        schemas.ItemRead: The item with the specified ID.
+        schemas.TodoRead: The todo with the specified ID.
     """
-    db_item = crud.get_item(db, item_id)
-    if not db_item:
-        raise HTTPException(status_code=404, detail="Item not found")
-    return db_item
+    db_todo = crud.get_todo(db, todo_id)
+    if not db_todo:
+        raise HTTPException(status_code=404, detail="Todo not found")
+    return db_todo
 
 
-@router.put("/items/{item_id}", response_model=schemas.ItemRead)
-def update_item(item_id: int, item: schemas.ItemCreate, db: Session = Depends(get_db)):
-    """Update an existing item by ID.
+@router.put("/todos/{todo_id}", response_model=schemas.TodoRead)
+def update_todo(todo_id: int, todo: schemas.TodoCreate, db: Session = Depends(get_db)):
+    """Update an existing todo by ID.
 
     Args:
-        item_id (int): ID of the item to update.
-        item (schemas.ItemCreate): Updated item data.
+        todo_id (int): ID of the todo to update.
+        todo (schemas.TodoCreate): Updated todo data.
         db (Session): Database session.
 
     Returns:
-        schemas.ItemRead: The updated item.
+        schemas.TodoRead: The updated todo.
     """
-    db_item = crud.update_item(db, item_id, item)
-    if not db_item:
-        raise HTTPException(status_code=404, detail="Item not found")
-    return db_item
+    db_todo = crud.update_todo(db, todo_id, todo)
+    if not db_todo:
+        raise HTTPException(status_code=404, detail="Todo not found")
+    return db_todo
 
 
-@router.delete("/items/{item_id}")
-def delete_item(item_id: int, db: Session = Depends(get_db)):
-    """Delete an item by ID.
+@router.delete("/todos/{todo_id}")
+def delete_todo(todo_id: int, db: Session = Depends(get_db)):
+    """Delete a todo by ID.
 
     Args:
-        item_id (int): ID of the item to delete.
+        todo_id (int): ID of the todo to delete.
         db (Session): Database session.
 
     Returns:
         dict: Confirmation message.
     """
-    db_item = crud.delete_item(db, item_id)
-    if not db_item:
-        raise HTTPException(status_code=404, detail="Item not found")
-    return {"message": "Item deleted successfully"}
+    db_todo = crud.delete_todo(db, todo_id)
+    if not db_todo:
+        raise HTTPException(status_code=404, detail="Todo not found")
+    return {"message": "Todo deleted successfully"}

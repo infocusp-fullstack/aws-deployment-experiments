@@ -1,32 +1,32 @@
 from pydantic import BaseModel, ConfigDict, Field
 
 
-class ItemBase(BaseModel):
-    """Base model for items.
+class TodoBase(BaseModel):
+    """Base model for todos.
 
     Attributes:
-        name (str): Name of the item.
-        description (str): Description of the item.
+        name (str): Name of the todo.
+        description (str): Description of the todo.
     """
 
-    name: str = Field(..., description="Name of the item.")
+    name: str = Field(..., description="Name of the todo.")
     description: str = Field(
         ...,
-        description="Description of the item.",
+        description="Description of the todo.",
     )
 
 
-class ItemCreate(ItemBase):
-    """Model for creating a new item."""
+class TodoCreate(TodoBase):
+    """Model for creating a new todo."""
 
     pass
 
 
-class ItemRead(ItemBase):
-    """Model for reading an item from the database.
+class TodoRead(TodoBase):
+    """Model for reading an todo from the database.
 
     Attributes:
-        id (int): Unique identifier for the item.
+        id (int): Unique identifier for the todo.
     """
 
     id: int

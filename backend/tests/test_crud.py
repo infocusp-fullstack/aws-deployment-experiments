@@ -1,5 +1,5 @@
 import pytest
-from app.crud import create_item, delete_item, get_item, get_items, update_item
+from app.crud import create_todo, delete_todo, get_todo, get_todos, update_todo
 from sqlalchemy import Column, Integer, String, create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
 
@@ -7,23 +7,23 @@ from sqlalchemy.orm import declarative_base, sessionmaker
 Base = declarative_base()
 
 
-class Item(Base):
-    """Item model for the database.
+class Todo(Base):
+    """Todo model for the database.
     Attributes:
-        id (int): Unique identifier for the item.
-        name (str): Name of the item.
-        description (str): Description of the item.
+        id (int): Unique identifier for the todo.
+        name (str): Name of the todo.
+        description (str): Description of the todo.
     """
 
-    __tablename__ = "items"
+    __tablename__ = "todos"
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, index=True)
     description = Column(String, index=True)
 
 
-class ItemCreate:
-    """Model for creating a new item."""
+class TodoCreate:
+    """Model for creating a new todo."""
 
     def __init__(self, name: str, description: str):
         self.name = name
@@ -31,8 +31,8 @@ class ItemCreate:
 
 
 # Patch imports
-models = type("models", (), {"Item": Item})
-schemas = type("schemas", (), {"ItemCreate": ItemCreate})
+models = type("models", (), {"Todo": Todo})
+schemas = type("schemas", (), {"TodoCreate": TodoCreate})
 
 
 # ---------- Pytest Fixtures ----------
@@ -50,55 +50,55 @@ def db_session():
 
 
 # ---------- Tests ----------
-def test_create_item(db_session):
-    item_data = ItemCreate(name="Test Item", description="A test description")
-    item = create_item(db_session, item_data)
+def test_create_todo(db_session):
+    todo_data = TodoCreate(name="Test Todo", description="A test description")
+    todo = create_todo(db_session, todo_data)
 
-    assert item.id is not None
-    assert item.name == "Test Item"
-    assert item.description == "A test description"
+    assert todo.id is not None
+    assert todo.name == "Test Todo"
+    assert todo.description == "A test description"
 
 
-def test_get_items(db_session):
-    """Test retrieving multiple items from the database."""
-    db_session.add(Item(name="Item 1", description="Desc 1"))
-    db_session.add(Item(name="Item 2", description="Desc 2"))
+def test_get_todos(db_session):
+    """Test retrieving multiple todos from the database."""
+    db_session.add(Todo(name="Todo 1", description="Desc 1"))
+    db_session.add(Todo(name="Todo 2", description="Desc 2"))
     db_session.commit()
 
-    items = get_items(db_session)
-    assert len(items) == 2
-    assert {i.name for i in items} == {"Item 1", "Item 2"}
+    todos = get_todos(db_session)
+    assert len(todos) == 2
+    assert {i.name for i in todos} == {"Todo 1", "Todo 2"}
 
 
-def test_get_item(db_session):
-    """Test retrieving a single item by ID."""
-    new_item = Item(name="Single", description="Only one")
-    db_session.add(new_item)
+def test_get_todo(db_session):
+    """Test retrieving a single todo by ID."""
+    new_todo = Todo(name="Single", description="Only one")
+    db_session.add(new_todo)
     db_session.commit()
 
-    fetched = get_item(db_session, new_item.id)
+    fetched = get_todo(db_session, new_todo.id)
     assert fetched.name == "Single"
     assert fetched.description == "Only one"
 
 
-def test_update_item(db_session):
-    """Test updating an existing item."""
-    new_item = Item(name="Old", description="Old desc")
-    db_session.add(new_item)
+def test_update_todo(db_session):
+    """Test updating an existing todo."""
+    new_todo = Todo(name="Old", description="Old desc")
+    db_session.add(new_todo)
     db_session.commit()
 
-    updated_data = ItemCreate(name="New", description="New desc")
-    updated_item = update_item(db_session, new_item.id, updated_data)
+    updated_data = TodoCreate(name="New", description="New desc")
+    updated_todo = update_todo(db_session, new_todo.id, updated_data)
 
-    assert updated_item.name == "New"
-    assert updated_item.description == "New desc"
+    assert updated_todo.name == "New"
+    assert updated_todo.description == "New desc"
 
 
-def test_delete_item(db_session):
-    """Test deleting an item from the database."""
-    new_item = Item(name="ToDelete", description="Delete me")
-    db_session.add(new_item)
+def test_delete_todo(db_session):
+    """Test deleting a todo from the database."""
+    new_todo = Todo(name="ToDelete", description="Delete me")
+    db_session.add(new_todo)
     db_session.commit()
 
-    deleted_item = delete_item(db_session, new_item.id)
-    assert deleted_item.name == "ToDelete"
+    deleted_todo = delete_todo(db_session, new_todo.id)
+    assert deleted_todo.name == "ToDelete"
