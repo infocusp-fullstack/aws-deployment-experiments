@@ -4,11 +4,12 @@ import sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 import pytest
-from app.database import Base, get_db
 from fastapi.testclient import TestClient
-from main import app
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+
+from backend.app.database import Base, get_db
+from backend.main import app
 
 # In-memory SQLite DB for tests
 SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
