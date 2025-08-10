@@ -9,7 +9,7 @@ client = TestClient(app)
 @pytest.mark.asyncio
 async def test_create_todo():
     """
-    An integration test that creates an item.
+    An integration test that creates a todo.
     """
     response = client.post(
         "/todos/", json={"name": "Test todo", "description": "A test todo description"}
@@ -68,7 +68,7 @@ async def test_delete_todo():
     An integration test that deletes a todo.
     """
     response = client.delete("/todos/1")
-    assert response.status_code == 200
+    assert response.status_code == 204
 
     # Verify the todo is deleted
     response = client.get("/todos/1")

@@ -69,7 +69,7 @@ def update_todo(todo_id: int, todo: schemas.TodoCreate, db: Session = Depends(ge
     return db_todo
 
 
-@router.delete("/todos/{todo_id}")
+@router.delete("/todos/{todo_id}", status_code=204)
 def delete_todo(todo_id: int, db: Session = Depends(get_db)):
     """Delete a todo by ID.
 
