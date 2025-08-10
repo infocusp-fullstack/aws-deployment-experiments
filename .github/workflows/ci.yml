@@ -48,3 +48,8 @@ jobs:
         working-directory: backend
         run: |
           pytest --maxfail=1 --disable-warnings -q
+
+      - name: Run integration tests
+        working-directory: backend
+        run: |
+          pytest tests/integration --maxfail=1 --disable-warnings -q
