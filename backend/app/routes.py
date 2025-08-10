@@ -7,7 +7,7 @@ from .database import get_db
 router = APIRouter()
 
 
-@router.post("/todos/", response_model=schemas.TodoRead)
+@router.post("/todos/", response_model=schemas.TodoRead, status_code=201)
 def create_todo(todo: schemas.TodoCreate, db: Session = Depends(get_db)):
     """Create a new todo in the database.
 
