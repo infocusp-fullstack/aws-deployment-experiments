@@ -58,7 +58,7 @@ We use pip-tools for dependency management.
 Install dev dependencies:
 
 ```bash
-pip install --require-hashes -r dev-requirementst.txt
+pip install --require-hashes -r dev-requirements.txt
 ```
 
 This will install tools like ruff and pre-commit in your system.
