@@ -1,0 +1,94 @@
+# Python cache / compiled files
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pyc
+*.pdb
+*.so
+*.dylib
+
+# Byte-compiled / optimized / DLL files
+*.egg
+*.egg-info/
+.eggs/
+
+# Distribution / packaging
+build/
+develop-eggs/
+dist/
+downloads/
+sdist/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.manifest
+*.spec
+
+# Virtual environments
+.env
+.venv
+env/
+venv/
+*-venv/
+*_venv/
+ENV/
+env.bak/
+venv.bak/
+
+# pipenv
+Pipfile.lock
+
+# poetry
+poetry.lock
+
+# dotenv environment variables
+*.env
+*.env.*
+
+# SQLite database
+*.db
+*.sqlite3
+
+# FastAPI / Uvicorn logs
+*.log
+logs/
+
+# IDE / editor
+.vscode/
+.idea/
+*.swp
+*~
+
+# Mac / system files
+.DS_Store
+Thumbs.db
+
+# pytest / coverage
+.pytest_cache/
+.coverage
+htmlcov/
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# pyright
+.pyrightcache/
+
+# compiled static files (if using frontend build in same repo)
+static/
+node_modules/
+
+# Temporary files
+tmp/
+temp/
+
+# Ruff cache
+.ruff_cache/

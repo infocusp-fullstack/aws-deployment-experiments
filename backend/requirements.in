@@ -1,0 +1,7 @@
+fastapi
+uvicorn
+fastapi[standard]
+sqlalchemy 
+pydantic
+greenlet==3.2.4
+pytest-asyncio
