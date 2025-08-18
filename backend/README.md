@@ -81,7 +81,13 @@ pip install --require-hashes -r requirements.txt
 **Development Server**
 
 ```bash
-uvicorn app.main:app --reload
+fastapi dev
+```
+
+**Production Server**
+
+```bash
+fastapi run
 ```
 
 App will be available at: http://localhost:8000
