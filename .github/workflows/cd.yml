@@ -35,8 +35,8 @@ jobs:
           context: ./backend
           push: true
           tags: |
-            ${{ secrets.ECR_REPOSITORY }}:${{ github.sha }}
-            ${{ secrets.ECR_REPOSITORY }}:latest
+            ${{ secrets.ECR_REPOSITORY_BACKEND }}:${{ github.sha }}
+            ${{ secrets.ECR_REPOSITORY_BACKEND }}:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
           platforms: linux/amd64
