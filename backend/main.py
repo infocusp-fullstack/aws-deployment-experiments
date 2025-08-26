@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 
-from backend.app import database, models, routes
+from app import database, models, routes
 
 models.Base.metadata.create_all(bind=database.engine)
 

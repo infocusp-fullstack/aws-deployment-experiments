@@ -2,7 +2,7 @@ import pytest
 from sqlalchemy import Column, Integer, String, create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
 
-from backend.app.crud import create_todo, delete_todo, get_todo, get_todos, update_todo
+from app.crud import create_todo, delete_todo, get_todo, get_todos, update_todo
 
 # ---------- Mock Models & Schemas ----------
 Base = declarative_base()
