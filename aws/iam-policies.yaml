@@ -1,0 +1,44 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: IAM Roles for aws deployment
+
+Resources:
+  EC2SSMRole:
+    Type: AWS::IAM::Role
+    DeletionPolicy: Retain
+    Properties:
+      RoleName: EC2SSMRole
+      Description: Role for EC2 instances to use SSM
+      AssumeRolePolicyDocument: 
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - ec2.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryPullOnly
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+
+      Tags:
+        - Key: Context
+          Value: aws-deployment-experiments
+
+  EC2InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    DeletionPolicy: Retain
+    Properties:
+      InstanceProfileName: EC2SSMInstanceProfile
+      Roles:
+        - !Ref EC2SSMRole
+
+Outputs:
+  EC2SSMRole:
+    Description: ARN of the EC2 SSM Role
+    Value: !GetAtt EC2SSMRole.Arn
+
+  EC2InstanceProfileArn:
+    Description: ARN of the EC2 Instance Profile
+    Value: !GetAtt EC2InstanceProfile.Arn

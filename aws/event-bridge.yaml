@@ -1,0 +1,175 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Create EventBridge Rule to trigger commands in EC2 on ECR push
+
+Parameters:
+  EC2AMIID:
+    Description: EC2 Instance AMI ID
+    Type: String
+    Default: ami-02d26659fd82cf299
+
+  EC2InstanceType:
+    Description: Default EC2 instance type
+    Type: String
+    Default: t2.micro
+
+  PublicSSHKeyPair:
+    Description: Key Pair for Public SSH connection
+    Type: String
+    Default: ssh_access_key
+
+  ECRRepoName:
+    Description: Name of the ECR Repository
+    Type: String
+    Default: aws-deployment-experiments-backend
+
+Resources:
+  EC2SSMRole:
+    Type: AWS::IAM::Role
+    DeletionPolicy: Retain
+    Properties:
+      RoleName: EC2SSMRole
+      Description: Role for EC2 instances to use SSM
+      AssumeRolePolicyDocument: 
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - ec2.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryPullOnly
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+
+      Tags:
+        - Key: Context
+          Value: aws-deployment-experiments
+
+  EC2InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    DependsOn: EC2SSMRole
+    DeletionPolicy: Retain
+    Properties:
+      InstanceProfileName: EC2SSMInstanceProfile
+      Roles:
+        - !Ref EC2SSMRole
+
+  PublicEC2:
+    Type: AWS::EC2::Instance
+    DependsOn: EC2InstanceProfile
+    Properties:
+      ImageId: !Ref EC2AMIID
+      InstanceType: !Ref EC2InstanceType
+      KeyName: !Ref PublicSSHKeyPair
+
+      SecurityGroupIds:
+        - !ImportValue AllowPublicSSH
+        - !ImportValue AllowPublicHTTP
+
+      IamInstanceProfile: !Ref EC2InstanceProfile
+
+      BlockDeviceMappings:
+        - DeviceName: /dev/sda1
+          Ebs:
+            VolumeSize: 8
+            DeleteOnTermination: true
+
+      # NetworkInterfaces:
+      #   - AssociatePublicIpAddress: true
+      #     DeviceIndex: "0"
+
+      UserData: >-
+          #! /bin/bash
+
+          sudo apt-get update
+          sudo apt-get install ca-certificates curl
+          sudo install -m 0755 -d /etc/apt/keyrings
+          sudo apt install unzip 
+
+          sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+          sudo chmod a+r /etc/apt/keyrings/docker.asc
+
+          echo \
+            "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
+            $(. /etc/os-release && echo "${UBUNTU_CODENAME:-$VERSION_CODENAME}") stable" | \
+            sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+          sudo apt-get update
+          sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+
+          sudo groupadd docker 2>/dev/null 
+          sudo usermod -aG docker ubuntu
+          newgrp docker
+
+          curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+          unzip awscliv2.zip
+          sudo ./aws/install
+
+      Tags:
+        - Key: Name
+          Value: aws-deployment-experiments
+
+  EventBridgeRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: Amazon_EventBridge_Rule_Target_aws_deployment_experiments
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: events.amazonaws.com
+            Action: sts:AssumeRole
+      MaxSessionDuration: 3600
+
+  EventBridgeInvokeRunCommandPolicy:
+    Type: AWS::IAM::RolePolicy
+    Properties:
+      PolicyName: Amazon_EventBridge_Invoke_Run_Command_Policy
+      RoleName:
+        Ref: EventBridgeRole
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: VisualEditor0
+            Effect: Allow
+            Action: ssm:SendCommand
+            Resource:
+              - !Sub arn:${AWS::Partition}:ec2:${AWS::Region}:${AWS::AccountId}:instance/i-0a99754ca12ad7c48
+              - !Sub arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:document/AWS-RunShellScript
+  
+  EventBridgeRule:
+    Type: AWS::Events::Rule
+    DependsOn:
+      - EventBridgeRole
+      - EventBridgeInvokeRunCommandPolicy
+    Properties:
+      Name: office-trigger-on-ecr-push
+      EventPattern: >-
+        {"source":["aws.ecr"],"detail-type":["ECR Image Action"],"detail":{"action-type":["PUSH"],"result":["SUCCESS"],"repository-name":["aws-deployment-experiments-backend"]}}
+      State: ENABLED
+      Description: Triggers when new image is pushed to ECR - For office use
+      EventBusName: default
+      Targets:
+        - Id: Id0d63fb17-68d1-4651-80ea-31f722616392
+          Arn:
+            Fn::Sub: >-
+              arn:${AWS::Partition}:ssm:${AWS::Region}::document/AWS-RunShellScript
+          RoleArn:
+            Fn::GetAtt:
+              - EventBridgeRole
+              - Arn
+          Input: !Sub |
+              {
+                "executionTimeout":["60"],
+                "workingDirectory":["/home/ubuntu"],
+                "commands":["aws ecr get-login-password --region ${AWS::Region} | docker login --username AWS --password-stdin 266735827942.dkr.ecr.${AWS::Region}.amazonaws.com && (docker pull 266735827942.dkr.ecr.${AWS::Region}.amazonaws.com/aws-deployment-experiments-backend:latest && docker rm -f aws-deployment-experiments-backend >/dev/null 2>&1 || true && docker run -d -p 3000:80 --name=aws-deployment-experiments-backend 266735827942.dkr.ecr.${AWS::Region}.amazonaws.com/aws-deployment-experiments-backend:latest)"]
+              }
+
+          RunCommandParameters:
+            RunCommandTargets:
+              - Key: InstanceIds
+                Values:
+                  - !Ref PublicEC2

@@ -1,0 +1,78 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: This template creates EC2 instances in Test VPC, inside public and private subnets
+Parameters:
+  EC2AMIID:
+    Description: EC2 Instance AMI ID
+    Type: String
+    Default: ami-02d26659fd82cf299
+
+  EC2InstanceType:
+    Description: Default EC2 instance type
+    Type: String
+    Default: t2.micro
+
+  PublicSSHKeyPair:
+    Description: Key Pair for Public SSH connection
+    Type: String
+    Default: ssh_access_key
+
+Resources:
+  PublicEC2:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: !Ref EC2AMIID
+      InstanceType: !Ref EC2InstanceType
+      KeyName: !Ref PublicSSHKeyPair
+
+      SecurityGroupIds:
+        - !ImportValue AllowPublicSSH
+        - !ImportValue AllowPublicHTTP
+
+      IamInstanceProfile: !ImportValue EC2InstanceProfileArn
+
+      BlockDeviceMappings:
+        - DeviceName: /dev/sda1
+          Ebs:
+            VolumeSize: 8
+            DeleteOnTermination: true
+
+      NetworkInterfaces:
+        - AssociatePublicIpAddress: true
+          DeviceIndex: "0"
+
+      UserData: >-
+          #! /bin/bash
+
+          sudo apt-get update
+          sudo apt-get install ca-certificates curl
+          sudo install -m 0755 -d /etc/apt/keyrings
+          sudo apt install unzip 
+
+          sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+          sudo chmod a+r /etc/apt/keyrings/docker.asc
+
+          echo \
+            "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
+            $(. /etc/os-release && echo "${UBUNTU_CODENAME:-$VERSION_CODENAME}") stable" | \
+            sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+          sudo apt-get update
+          sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+
+          sudo groupadd docker 2>/dev/null 
+          sudo usermod -aG docker ubuntu
+          newgrp docker
+
+          curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+          unzip awscliv2.zip
+          sudo ./aws/install
+
+      Tags:
+        - Key: Name
+          Value: aws-deployment-experiments
+
+Outputs:
+  PublicEC2InstanceId:
+    Description: Instance ID of the Public EC2 Instance
+    Value: !Ref PublicEC2
+    
