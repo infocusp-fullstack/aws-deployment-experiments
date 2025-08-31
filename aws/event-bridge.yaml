@@ -22,6 +22,16 @@ Parameters:
     Type: String
     Default: aws-deployment-experiments-backend
 
+  EC2InstanceName:
+    Description: Name of the EC2 Instance
+    Type: String
+    Default: aws-deployment-experiments-ec2
+
+  EventBridgeRuleName:
+    Description: Name of the EventBridge Rule
+    Type: String
+    Default: aws-deployment-experiments-event-rule
+
 Resources:
   EC2SSMRole:
     Type: AWS::IAM::Role
@@ -76,40 +86,31 @@ Resources:
             VolumeSize: 8
             DeleteOnTermination: true
 
-      # NetworkInterfaces:
-      #   - AssociatePublicIpAddress: true
-      #     DeviceIndex: "0"
-
-      UserData: >-
-          #! /bin/bash
-
-          sudo apt-get update
-          sudo apt-get install ca-certificates curl
-          sudo install -m 0755 -d /etc/apt/keyrings
-          sudo apt install unzip 
-
-          sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
-          sudo chmod a+r /etc/apt/keyrings/docker.asc
-
-          echo \
-            "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
-            $(. /etc/os-release && echo "${UBUNTU_CODENAME:-$VERSION_CODENAME}") stable" | \
-            sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-
-          sudo apt-get update
-          sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
-
-          sudo groupadd docker 2>/dev/null 
-          sudo usermod -aG docker ubuntu
-          newgrp docker
-
+      UserData: 
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          apt-get update
+          apt-get install -y ca-certificates curl unzip
+          
+          install -m 0755 -d /etc/apt/keyrings
+          curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+          chmod a+r /etc/apt/keyrings/docker.asc
+          
+          echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo "$UBUNTU_CODENAME") stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
+          
+          apt-get update
+          apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+          
+          groupadd docker 2>/dev/null || true
+          usermod -aG docker ubuntu
+          
           curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
           unzip awscliv2.zip
-          sudo ./aws/install
+          ./aws/install
 
       Tags:
         - Key: Name
-          Value: aws-deployment-experiments
+          Value: !Ref EC2InstanceName
 
   EventBridgeRole:
     Type: AWS::IAM::Role
@@ -137,8 +138,8 @@ Resources:
             Effect: Allow
             Action: ssm:SendCommand
             Resource:
-              - !Sub arn:${AWS::Partition}:ec2:${AWS::Region}:${AWS::AccountId}:instance/i-0a99754ca12ad7c48
-              - !Sub arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:document/AWS-RunShellScript
+              - !Sub arn:${AWS::Partition}:ec2:${AWS::Region}:${AWS::AccountId}:instance/${PublicEC2}
+              - !Sub arn:${AWS::Partition}:ssm:${AWS::Region}:*:document/AWS-RunShellScript
   
   EventBridgeRule:
     Type: AWS::Events::Rule
@@ -146,30 +147,32 @@ Resources:
       - EventBridgeRole
       - EventBridgeInvokeRunCommandPolicy
     Properties:
-      Name: office-trigger-on-ecr-push
-      EventPattern: >-
-        {"source":["aws.ecr"],"detail-type":["ECR Image Action"],"detail":{"action-type":["PUSH"],"result":["SUCCESS"],"repository-name":["aws-deployment-experiments-backend"]}}
+      Name: !Ref EventBridgeRuleName
+      EventPattern: !Sub |
+        {
+          "source": ["aws.ecr"],
+          "detail-type": ["ECR Image Action"],
+          "detail": {
+            "action-type": ["PUSH"],
+            "result": ["SUCCESS"],
+            "repository-name": ["${ECRRepoName}"]
+          }
+        }
       State: ENABLED
       Description: Triggers when new image is pushed to ECR - For office use
       EventBusName: default
       Targets:
-        - Id: Id0d63fb17-68d1-4651-80ea-31f722616392
-          Arn:
-            Fn::Sub: >-
-              arn:${AWS::Partition}:ssm:${AWS::Region}::document/AWS-RunShellScript
-          RoleArn:
-            Fn::GetAtt:
-              - EventBridgeRole
-              - Arn
-          Input: !Sub |
-              {
-                "executionTimeout":["60"],
-                "workingDirectory":["/home/ubuntu"],
-                "commands":["aws ecr get-login-password --region ${AWS::Region} | docker login --username AWS --password-stdin 266735827942.dkr.ecr.${AWS::Region}.amazonaws.com && (docker pull 266735827942.dkr.ecr.${AWS::Region}.amazonaws.com/aws-deployment-experiments-backend:latest && docker rm -f aws-deployment-experiments-backend >/dev/null 2>&1 || true && docker run -d -p 3000:80 --name=aws-deployment-experiments-backend 266735827942.dkr.ecr.${AWS::Region}.amazonaws.com/aws-deployment-experiments-backend:latest)"]
-              }
-
+        - Id: RunSSM
+          Arn: !Sub arn:aws:ssm:${AWS::Region}::document/AWS-RunShellScript
+          RoleArn: !GetAtt EventBridgeRole.Arn
           RunCommandParameters:
             RunCommandTargets:
               - Key: InstanceIds
                 Values:
                   - !Ref PublicEC2
+          Input: !Sub |
+              {
+                "executionTimeout":["60"],
+                "workingDirectory":["/home/ubuntu"],
+                "commands":["aws ecr get-login-password --region ${AWS::Region} | docker login --username AWS --password-stdin ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com && (docker pull ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${ECRRepoName}:latest && docker rm -f ${ECRRepoName} >/dev/null 2>&1 || true && docker run -d -p 3000:80 --name=${ECRRepoName} ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${ECRRepoName}:latest)"]
+              }
