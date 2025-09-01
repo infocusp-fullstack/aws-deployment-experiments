@@ -1,0 +1,48 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: This template creates security groups for VPC
+
+Resources:
+  AllowPublicSSH:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: aws-deployment-allow-ssh
+      GroupDescription: Allows SSH connection over Public Internet
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Context
+          Value: aws-deployment-experiments
+        - Key: Name
+          Value: aws-deployment-allow-ssh
+
+  AllowPublicHTTP:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: aws-deployment-allow-http
+      GroupDescription: Allows HTTP connection over Public Internet
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Context
+          Value: aws-deployment-experiments
+        - Key: Name
+          Value: aws-deployment-allow-http
+
+Outputs:
+  AllowPublicSSH:
+    Description: Security Group ID for allow-public-ssh
+    Value: !Ref AllowPublicSSH
+    Export:
+      Name: AllowPublicSSH
+
+  AllowPublicHTTP:
+    Description: Security Group ID for allow-public-http
+    Value: !Ref AllowPublicHTTP
+    Export:
+      Name: AllowPublicHTTP
