@@ -13,7 +13,7 @@ def create_todo(db: Session, todo: schemas.TodoCreate) -> models.Todo:
     Returns:
         models.Todo: The created todo.
     """
-    db_todo = models.Todo(name=todo.name, description=todo.description)
+    db_todo = models.Todo(name=todo.name, description=todo.description, priority = todo.priority, completed=todo.completed, due_date=todo.due_date)
     db.add(db_todo)
     db.commit()
     db.refresh(db_todo)

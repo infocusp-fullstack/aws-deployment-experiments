@@ -35,7 +35,7 @@ interface TaskListProps {
   onViewTask: (task: Task) => void;
 }
 
-type SortKey = "title" | "dueDate" | "priority";
+type SortKey = "title" | "due_date" | "priority";
 type SortDirection = "asc" | "desc";
 
 const priorityOrder: Record<Priority, number> = {
@@ -52,7 +52,7 @@ const priorityBadgeVariant: Record<Priority, "destructive" | "warning" | "outlin
 
 export function TaskList({ onEditTask, onDeleteTask, onViewTask }: TaskListProps) {
   const { tasks, toggleComplete } = useTasks();
-  const [sortKey, setSortKey] = useState<SortKey | null>("dueDate");
+  const [sortKey, setSortKey] = useState<SortKey | null>("due_date");
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
 
   const handleSort = (key: SortKey) => {
@@ -69,14 +69,14 @@ export function TaskList({ onEditTask, onDeleteTask, onViewTask }: TaskListProps
       if (a.completed && !b.completed) return 1;
       if (!a.completed && b.completed) return -1;
       if (!sortKey) return 0;
-      
+
       const dir = sortDirection === "asc" ? 1 : -1;
 
       switch (sortKey) {
         case "title":
           return a.title.localeCompare(b.title) * dir;
-        case "dueDate":
-          return (parseISO(a.dueDate).getTime() - parseISO(b.dueDate).getTime()) * dir;
+        case "due_date":
+          return (parseISO(a.due_date).getTime() - parseISO(b.due_date).getTime()) * dir;
         case "priority":
           const priorityA = a.priority ? priorityOrder[a.priority] : 0;
           const priorityB = b.priority ? priorityOrder[b.priority] : 0;
@@ -114,7 +114,7 @@ export function TaskList({ onEditTask, onDeleteTask, onViewTask }: TaskListProps
             <TableHead className="w-[50px]"></TableHead>
             <SortableHeader columnKey="title">Task</SortableHeader>
             <SortableHeader columnKey="priority">Priority</SortableHeader>
-            <SortableHeader columnKey="dueDate">Due Date</SortableHeader>
+            <SortableHeader columnKey="due_date">Due Date</SortableHeader>
             <TableHead className="w-[50px]">Actions</TableHead>
           </TableRow>
         </TableHeader>
@@ -147,7 +147,7 @@ export function TaskList({ onEditTask, onDeleteTask, onViewTask }: TaskListProps
                 <TableCell
                   className={cn(task.completed && "text-muted-foreground")}
                 >
-                  {format(parseISO(task.dueDate), "MMM d, yyyy")}
+                  {format(parseISO(task.due_date), "MMM d, yyyy")}
                 </TableCell>
                 <TableCell>
                   <DropdownMenu>
@@ -158,7 +158,7 @@ export function TaskList({ onEditTask, onDeleteTask, onViewTask }: TaskListProps
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                       <DropdownMenuItem onClick={() => onViewTask(task)}>
+                      <DropdownMenuItem onClick={() => onViewTask(task)}>
                         <Eye className="mr-2 h-4 w-4" />
                         View
                       </DropdownMenuItem>

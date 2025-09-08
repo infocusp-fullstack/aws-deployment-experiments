@@ -49,9 +49,9 @@ import { prioritizeTask } from "@/ai/flows/task-prioritization-assistant";
 import type { PrioritizeTaskOutput } from "@/ai/flows/task-prioritization-assistant";
 
 const taskFormSchema = z.object({
-  title: z.string().min(1, "Title is required."),
+  name: z.string().min(1, "Title is required."),
   description: z.string().optional(),
-  dueDate: z.date({ required_error: "A due date is required." }),
+  due_date: z.date({ required_error: "A due date is required." }),
   priority: z.enum(["High", "Medium", "Low"]).optional(),
 });
 
@@ -74,32 +74,32 @@ export function TaskForm({ open, onOpenChange, task }: TaskFormProps) {
     resolver: zodResolver(taskFormSchema),
     defaultValues: task
       ? {
-          ...task,
-          dueDate: parseISO(task.dueDate),
-        }
+        ...task,
+        due_date: parseISO(task.due_date),
+      }
       : {
-          title: "",
-          description: "",
-          priority: undefined,
-        },
+        name: "",
+        description: "",
+        priority: undefined,
+      },
   });
 
   const { watch } = form;
   const watchedDescription = watch("description");
-  const watchedDueDate = watch("dueDate");
+  const watcheddue_date = watch("due_date");
 
   useEffect(() => {
     // Reset form when the task prop changes
     form.reset(
       task
-        ? { ...task, dueDate: parseISO(task.dueDate) }
-        : { title: "", description: "", priority: undefined, dueDate: undefined }
+        ? { ...task, due_date: parseISO(task.due_date) }
+        : { name: "", description: "", priority: "", due_date: "" }
     );
     setAiSuggestion(null);
   }, [task, form, open]);
 
   const handleGetSuggestion = async () => {
-    if (!watchedDescription || !watchedDueDate) {
+    if (!watchedDescription || !watcheddue_date) {
       toast({
         variant: "destructive",
         title: "Missing Information",
@@ -113,7 +113,7 @@ export function TaskForm({ open, onOpenChange, task }: TaskFormProps) {
     try {
       const suggestion = await prioritizeTask({
         description: watchedDescription,
-        dueDate: format(watchedDueDate, "yyyy-MM-dd"),
+        due_date: format(watcheddue_date, "yyyy-MM-dd"),
       });
       setAiSuggestion(suggestion);
       form.setValue("priority", suggestion.priority as Priority);
@@ -132,7 +132,7 @@ export function TaskForm({ open, onOpenChange, task }: TaskFormProps) {
   const onSubmit = (data: TaskFormValues) => {
     const taskData = {
       ...data,
-      dueDate: format(data.dueDate, "yyyy-MM-dd"),
+      due_date: format(data.due_date, "yyyy-MM-dd"),
       priorityReason: aiSuggestion?.reason,
     };
 
@@ -158,7 +158,7 @@ export function TaskForm({ open, onOpenChange, task }: TaskFormProps) {
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <FormField
                 control={form.control}
-                name="title"
+                name="name"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Title</FormLabel>
@@ -189,7 +189,7 @@ export function TaskForm({ open, onOpenChange, task }: TaskFormProps) {
               <div className="grid grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
-                  name="dueDate"
+                  name="due_date"
                   render={({ field }) => (
                     <FormItem className="flex flex-col">
                       <FormLabel>Due Date</FormLabel>
@@ -217,7 +217,7 @@ export function TaskForm({ open, onOpenChange, task }: TaskFormProps) {
                             mode="single"
                             selected={field.value}
                             onSelect={field.onChange}
-                            disabled={(date) => date < new Date(new Date().setHours(0,0,0,0))}
+                            disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
                             initialFocus
                           />
                         </PopoverContent>
@@ -253,9 +253,9 @@ export function TaskForm({ open, onOpenChange, task }: TaskFormProps) {
                   )}
                 />
               </div>
-              
+
               <div className="space-y-2">
-                 <Button
+                <Button
                   type="button"
                   variant="outline"
                   size="sm"

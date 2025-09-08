@@ -31,7 +31,7 @@ function DayWithTasks({
   onViewTask: (task: Task) => void;
 }) {
   const tasksForDay = useMemo(() =>
-    tasks.filter((task) => isSameDay(parseISO(task.dueDate), date)),
+    tasks.filter((task) => task?.due_date && isSameDay(parseISO(task.due_date), date)),
     [tasks, date]
   );
 
@@ -58,7 +58,7 @@ function DayWithTasks({
                 task.completed && "opacity-60 line-through"
               )}
             >
-              {task.title}
+              {task.name}
             </button>
           ))}
         </div>

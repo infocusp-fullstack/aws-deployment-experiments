@@ -9,6 +9,8 @@ import {
 } from "react";
 import { v4 as uuidv4 } from "uuid";
 import type { Task, Priority } from "@/lib/types";
+import { fetchTasks as fetchTasksFromAPI, addTask as addTaskToAPI } from "@/api/tasks";
+import { set } from "date-fns";
 
 // Forcing uuid to be a client-side module
 (uuidv4 as any).browser = true;
@@ -32,80 +34,65 @@ interface TasksProviderProps {
 const isBrowser = typeof window !== "undefined";
 
 const initialTasks: Task[] = [
-  {
-    id: '1',
-    title: "Design the new dashboard interface",
-    description: "Create mockups and a prototype in Figma for the new dashboard layout.",
-    dueDate: "2024-08-15",
-    completed: false,
-    priority: "High",
-    priorityReason: "This is a critical path for the next release.",
-  },
-  {
-    id: '2',
-    title: "Develop the API for user authentication",
-    description: "Set up endpoints for user login, registration, and session management.",
-    dueDate: "2024-08-20",
-    completed: false,
-    priority: "High",
-    priorityReason: "Authentication is a blocker for other features.",
-  },
-  {
-    id: '3',
-    title: "Write documentation for the new components",
-    description: "Document props, usage examples, and best practices for the new UI library.",
-    dueDate: "2024-08-25",
-    completed: false,
-    priority: "Medium",
-    priorityReason: "Good documentation will speed up team onboarding.",
-  },
-   {
-    id: '4',
-    title: "Plan company offsite event",
-    description: "Coordinate with vendors for location, catering, and activities.",
-    dueDate: "2024-09-10",
-    completed: true,
-    priority: "Low",
-    priorityReason: "Important for team morale but not an immediate product priority.",
-  },
+  // {
+  //   id: '1',
+  //   title: "Design the new dashboard interface",
+  //   description: "Create mockups and a prototype in Figma for the new dashboard layout.",
+  //   due_date: "2024-08-15",
+  //   completed: false,
+  //   priority: "High",
+  //   priorityReason: "This is a critical path for the next release.",
+  // },
+  // {
+  //   id: '2',
+  //   title: "Develop the API for user authentication",
+  //   description: "Set up endpoints for user login, registration, and session management.",
+  //   due_date: "2024-08-20",
+  //   completed: false,
+  //   priority: "High",
+  //   priorityReason: "Authentication is a blocker for other features.",
+  // },
+  // {
+  //   id: '3',
+  //   title: "Write documentation for the new components",
+  //   description: "Document props, usage examples, and best practices for the new UI library.",
+  //   due_date: "2024-08-25",
+  //   completed: false,
+  //   priority: "Medium",
+  //   priorityReason: "Good documentation will speed up team onboarding.",
+  // },
+  //  {
+  //   id: '4',
+  //   title: "Plan company offsite event",
+  //   description: "Coordinate with vendors for location, catering, and activities.",
+  //   due_date: "2024-09-10",
+  //   completed: true,
+  //   priority: "Low",
+  //   priorityReason: "Important for team morale but not an immediate product priority.",
+  // },
 ];
 
 
 export function TasksProvider({ children }: TasksProviderProps) {
-  const [tasks, setTasks] = useState<Task[]>(() => {
-    if (!isBrowser) {
-      return initialTasks;
-    }
-    try {
-      const item = window.localStorage.getItem("infocusp-tasks");
-      return item ? JSON.parse(item) : initialTasks;
-    } catch (error) {
-      console.error(error);
-      return initialTasks;
-    }
-  });
+  const [tasks, setTasks] = useState<Task[]>([])
 
   useEffect(() => {
-    if (isBrowser) {
-      try {
-        window.localStorage.setItem("infocusp-tasks", JSON.stringify(tasks));
-      } catch (error) {
-        console.error(error);
-      }
+    try {
+      fetchTasks()
+    } catch (error) {
+      console.error(error);
     }
-  }, [tasks]);
+  }, []);
 
-  const addTask = useCallback(
-    (taskData: Omit<Task, "id" | "completed">) => {
-      const newTask: Task = {
-        id: uuidv4(),
-        ...taskData,
-        completed: false,
-      };
-      setTasks((prevTasks) => [newTask, ...prevTasks]);
-    },
-    []
-  );
+  const addTask = async (taskData: Task) => {
+    const response: any = await addTaskToAPI(taskData.name, taskData.description, taskData.priority, new Date(taskData.due_date));
+    setTasks((prevTasks) => [response, ...prevTasks]);
+  };
+
+  const fetchTasks = async () => {
+    const response = await fetchTasksFromAPI();
+    setTasks(response);
+  }
 
   const updateTask = useCallback((updatedTask: Task) => {
     setTasks((prevTasks) =>

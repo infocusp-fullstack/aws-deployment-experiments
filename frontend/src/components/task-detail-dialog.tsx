@@ -57,15 +57,15 @@ export function TaskDetailDialog({
           {task.description && (
             <p className="text-sm text-muted-foreground">{task.description}</p>
           )}
-          
+
           <Separator />
-          
+
           <div className="grid grid-cols-[80px_1fr] items-center gap-4 text-sm">
             <div className="flex items-center gap-2 text-muted-foreground">
               <Calendar className="h-4 w-4" />
               <span>Due Date</span>
             </div>
-            <span>{format(parseISO(task.dueDate), "PPP")}</span>
+            <span>{format(parseISO(task.due_date), "PPP")}</span>
 
             {task.priority && (
               <>
@@ -80,11 +80,11 @@ export function TaskDetailDialog({
 
           {task.priorityReason && (
             <div className="rounded-md border bg-accent/50 p-3 text-sm">
-               <div className="flex items-center gap-2 font-semibold mb-2">
-                 <Sparkles className="h-4 w-4 text-primary" />
-                 <span>AI Priority Suggestion</span>
-               </div>
-               <p className="text-accent-foreground/80">{task.priorityReason}</p>
+              <div className="flex items-center gap-2 font-semibold mb-2">
+                <Sparkles className="h-4 w-4 text-primary" />
+                <span>AI Priority Suggestion</span>
+              </div>
+              <p className="text-accent-foreground/80">{task.priorityReason}</p>
             </div>
           )}
         </div>
