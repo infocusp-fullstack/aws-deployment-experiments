@@ -23,3 +23,10 @@ export async function addTask(name: string, description: string | any, priority:
     console.log("Add Task Response:", response.data);
     return response.data;
 }
+
+export async function updateTask(todoId: any, name: string, description: string | any, priority: string, due_date: Date, completed: boolean): Promise<Task> {
+    console.log("Updating Task:", { name, description, priority, due_date, completed });
+    const response = await axios.put<Task>(`${BASE_URL}/${todoId}`, { name, description, priority, due_date, completed });
+    console.log("Update Task Response:", response.data);
+    return response.data;
+}

@@ -80,7 +80,7 @@ export function TaskForm({ open, onOpenChange, task }: TaskFormProps) {
       : {
         name: "",
         description: "",
-        priority: undefined,
+        priority: "Low",
       },
   });
 
@@ -93,7 +93,7 @@ export function TaskForm({ open, onOpenChange, task }: TaskFormProps) {
     form.reset(
       task
         ? { ...task, due_date: parseISO(task.due_date) }
-        : { name: "", description: "", priority: "", due_date: "" }
+        : { name: "", description: "", priority: "Low", due_date: "" }
     );
     setAiSuggestion(null);
   }, [task, form, open]);

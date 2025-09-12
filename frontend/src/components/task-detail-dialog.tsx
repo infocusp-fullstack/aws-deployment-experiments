@@ -24,10 +24,21 @@ interface TaskDetailDialogProps {
 }
 
 const priorityBadgeVariant = {
-  High: "destructive",
-  Medium: "warning",
-  Low: "outline",
+  "High": "destructive",
+  "Medium": "warning",
+  "Low": "outline",
 } as const;
+
+type Priority = keyof typeof priorityBadgeVariant;
+
+interface Task {
+  priority: Priority;
+  id: string;
+  name: string;
+  description?: string;
+  due_date: string;
+  completed: boolean;
+}
 
 
 export function TaskDetailDialog({
@@ -48,7 +59,7 @@ export function TaskDetailDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>{task.title}</DialogTitle>
+          <DialogTitle>{task.name}</DialogTitle>
           <DialogDescription>
             {task.completed ? "Completed" : "In progress"}
           </DialogDescription>
@@ -78,7 +89,7 @@ export function TaskDetailDialog({
             )}
           </div>
 
-          {task.priorityReason && (
+          {/* {task.priorityReason && (
             <div className="rounded-md border bg-accent/50 p-3 text-sm">
               <div className="flex items-center gap-2 font-semibold mb-2">
                 <Sparkles className="h-4 w-4 text-primary" />
@@ -86,7 +97,7 @@ export function TaskDetailDialog({
               </div>
               <p className="text-accent-foreground/80">{task.priorityReason}</p>
             </div>
-          )}
+          )} */}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={handleEditClick}>

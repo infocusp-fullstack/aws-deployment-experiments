@@ -9,7 +9,7 @@ import {
 } from "react";
 import { v4 as uuidv4 } from "uuid";
 import type { Task, Priority } from "@/lib/types";
-import { fetchTasks as fetchTasksFromAPI, addTask as addTaskToAPI } from "@/api/tasks";
+import { fetchTasks as fetchTasksFromAPI, addTask as addTaskToAPI, updateTask as updateTaskWithAPI } from "@/api/tasks";
 import { set } from "date-fns";
 
 // Forcing uuid to be a client-side module
@@ -94,25 +94,26 @@ export function TasksProvider({ children }: TasksProviderProps) {
     setTasks(response);
   }
 
-  const updateTask = useCallback((updatedTask: Task) => {
-    setTasks((prevTasks) =>
-      prevTasks.map((task) =>
-        task.id === updatedTask.id ? updatedTask : task
-      )
-    );
-  }, []);
+  const updateTask = async (updatedTask: Task) => {
+    const response: any = await updateTaskWithAPI(updatedTask.id, updatedTask.name, updatedTask.description, updatedTask.priority, new Date(updatedTask.due_date), updatedTask.completed);
+    setTasks((prevTasks) => [response, ...prevTasks.filter(task => task.id !== updatedTask.id)]);
+  };
 
   const deleteTask = useCallback((id: string) => {
     setTasks((prevTasks) => prevTasks.filter((task) => task.id !== id));
   }, []);
 
-  const toggleComplete = useCallback((id: string) => {
-    setTasks((prevTasks) =>
-      prevTasks.map((task) =>
-        task.id === id ? { ...task, completed: !task.completed } : task
-      )
-    );
-  }, []);
+  const toggleComplete = async (id: string) => {
+    const updatedTasks = tasks.filter(tasks => tasks.id === id)
+
+    if (!updatedTasks) return null;
+
+    const updatedTask = updatedTasks[0]
+    updatedTask.completed = !updatedTask.completed
+
+    const response: any = await updateTaskWithAPI(updatedTask.id, updatedTask.name, updatedTask.description, updatedTask.priority, new Date(updatedTask.due_date), updatedTask.completed);
+    setTasks((prevTasks) => [response, ...prevTasks.filter(task => task.id !== updatedTask.id)]);
+  };
 
   const value = { tasks, addTask, updateTask, deleteTask, toggleComplete };
 
