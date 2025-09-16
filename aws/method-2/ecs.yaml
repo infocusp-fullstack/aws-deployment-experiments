@@ -1,0 +1,205 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Create ECS Cluster, Task Definition and Fargate Service to run container from ECR
+
+Parameters:
+  ECSClusterName:
+    Description: Name of the ECS Cluster
+    Type: String
+    Default: aws-deployment-experiments-cluster
+
+  ECSTaskExecutionRoleName:
+    Description: Name of the ECS Task Execution Role
+    Type: String
+    Default: ECSTaskExecutionRole-aws-experiments
+
+  ECSTaskDefinitionName:
+    Description: Name of the ECS Task Definition
+    Type: String
+    Default: aws-deployment-experiments-task
+
+  ECRImageRepoName:
+    Description: Name of the ECR Image Repository
+    Type: String
+    Default: aws-deployment-experiments-backend
+
+  ECSServiceName:
+    Description: Name of the ECS Service
+    Type: String
+    Default: aws-deployment-experiments-service
+
+  ALBName:
+    Description: Name of the Application Load Balancer
+    Type: String
+    Default: aws-experiments
+
+  TaskVPCID:
+    Description: VPC ID where the ECS tasks will run
+    Type: String
+    Default: vpc-0a1b2c3d4e5f6g7h8
+
+  TaskVPCSubnets:
+    Description: Comma-separated list of VPC Subnet IDs for the ECS tasks
+    Type: CommaDelimitedList
+    Default: subnet-0bb1c79de3EXAMPLE,subnet-064f6b8e4eEXAMPLE
+
+  TaskSecurityGroup:
+    Description: Security Group ID for the ECS tasks
+    Type: String
+    Default: sg-0a1b2c3d4e5f6g7h8
+    MinLength: 1
+
+Resources:
+  # ---------------------------------------------------------------------------
+  # ECS CLUSTER
+  # ---------------------------------------------------------------------------
+  ECSCluster:
+    Type: AWS::ECS::Cluster
+    Properties:
+      ClusterName: !Ref ECSClusterName
+      Tags:
+        - Key: Name
+          Value: !Ref ECSClusterName
+
+  # ---------------------------------------------------------------------------
+  # TASK DEFINITION EXECUTION ROLE
+  # ---------------------------------------------------------------------------
+  ECSTaskExecutionRole:
+    Type: AWS::IAM::Role
+    DeletionPolicy: Retain
+    Properties:
+      RoleName: !Ref ECSTaskExecutionRoleName
+      Description: Role for ECS tasks to pull images and write logs
+      AssumeRolePolicyDocument: 
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - ecs-tasks.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
+
+      Policies:
+        - PolicyName: AllowLogGroupCreate
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                Resource: "*"
+
+  # ---------------------------------------------------------------------------
+  # ECS TASK DEFINITION
+  # ---------------------------------------------------------------------------
+  ECSTaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: !Ref ECSTaskDefinitionName
+      RuntimePlatform:
+        CpuArchitecture: X86_64
+        OperatingSystemFamily: LINUX
+      NetworkMode: awsvpc
+      Memory: 512
+      Cpu: 256
+      ExecutionRoleArn: !GetAtt ECSTaskExecutionRole.Arn
+      ContainerDefinitions:
+        - Name: !Ref ECSTaskDefinitionName
+          Image: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${ECRImageRepoName}:latest"
+          Essential: true
+          PortMappings:
+            - ContainerPort: 80
+              Protocol: tcp
+              HostPort: 80
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-region: !Ref "AWS::Region"
+              awslogs-group: /ecs/
+              awslogs-stream-prefix: ecs
+              awslogs-create-group: true
+
+  # --------------------------------------------------------------------------
+  # ELASTIC LOAD BALANCER - TARGET GROUP
+  # ---------------------------------------------------------------------------
+  LoadBalancerTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      HealthCheckEnabled: true
+      HealthCheckIntervalSeconds: 30
+      HealthCheckPath: /health
+      HealthCheckPort: "80"
+      HealthCheckProtocol: HTTP
+      HealthCheckTimeoutSeconds: 5
+      HealthyThresholdCount: 5
+      UnhealthyThresholdCount: 2
+      Name: !Sub "${ALBName}-tg"
+      VpcId: !Ref TaskVPCID
+      TargetType: ip
+      IpAddressType: ipv4
+      ProtocolVersion: HTTP1
+      Protocol: HTTP
+      Port: 80
+
+  # --------------------------------------------------------------------------
+  # ELASTIC LOAD BALANCER - ALB
+  # ---------------------------------------------------------------------------
+  ApplicationLoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      IpAddressType: ipv4
+      Name: !Sub "${ALBName}-alb"
+      Scheme: internet-facing
+      SecurityGroups:
+        - !Ref TaskSecurityGroup
+      Subnets: !Ref TaskVPCSubnets
+      Type: application
+
+  # ---------------------------------------------------------------------------
+  # ELASTIC LOAD BALANCER - LISTENER
+  # ---------------------------------------------------------------------------
+  LoadBalancerListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref LoadBalancerTargetGroup
+      LoadBalancerArn: !Ref ApplicationLoadBalancer
+      Port: 80
+      Protocol: HTTP
+  
+  # ---------------------------------------------------------------------------
+  # ECS SERVICE
+  # ---------------------------------------------------------------------------
+  ECSService:
+    Type: AWS::ECS::Service
+    Properties:
+      AvailabilityZoneRebalancing: DISABLED
+      Cluster: !Ref ECSCluster
+      DesiredCount: 1
+      LaunchType: FARGATE
+      LoadBalancers:
+        - ContainerName: !Ref ECSTaskDefinitionName
+          ContainerPort: 80
+          TargetGroupArn: !Ref LoadBalancerTargetGroup
+
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: ENABLED
+          SecurityGroups:
+            - !Ref TaskSecurityGroup
+          Subnets: !Ref TaskVPCSubnets
+
+      ServiceName: !Ref ECSServiceName
+      TaskDefinition: !Ref ECSTaskDefinition
+      Tags:
+        - Key: Name
+          Value: !Ref ECSServiceName
+
+Outputs:
+  ECSClusterName:
+    Description: Name of the ECS Cluster
+    Value: !Ref ECSClusterName
