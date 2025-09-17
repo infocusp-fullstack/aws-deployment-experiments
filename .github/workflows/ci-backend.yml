@@ -1,13 +1,16 @@
-name: CI - Ruff & Tests
+name: CI Backend - Ruff & Tests
 
 on:
   push:
+    paths:
+      - backend/**
     branches:
       - "**"
   pull_request:
+    paths:
+      - backend/**
     branches:
       - main
-      - dev
 
 jobs:
   backend-ci:
