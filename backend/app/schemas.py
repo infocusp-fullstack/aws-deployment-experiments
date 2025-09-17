@@ -7,6 +7,9 @@ class TodoBase(BaseModel):
     Attributes:
         name (str): Name of the todo.
         description (str): Description of the todo.
+        priority (str): Priority level of the todo.
+        completed (bool): Completion status of the todo.
+        due_date (str): Due date of the todo.
     """
 
     name: str = Field(..., description="Name of the todo.")
@@ -14,6 +17,9 @@ class TodoBase(BaseModel):
         ...,
         description="Description of the todo.",
     )
+    priority: str = Field(..., description="Priority level of the todo.")
+    completed: bool = Field(..., description="Completion status of the todo.")
+    due_date: str = Field(..., description="Due date of the todo.")
 
 
 class TodoCreate(TodoBase):

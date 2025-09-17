@@ -17,7 +17,13 @@ def create_todo(todo: schemas.TodoCreate, db: Session = Depends(get_db)):
         Todo (schemas.TodoCreate): Todo data to create.
         db (Session): Database session.
     """
-    return crud.create_todo(db, todo)
+    print("Creating todo:", todo)
+    try:
+        return crud.create_todo(db, todo)
+    except Exception as e:
+        print("Error creating todo:", e)
+        return {}
+        # raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
 @router.get("/todos/", response_model=list[schemas.TodoRead])

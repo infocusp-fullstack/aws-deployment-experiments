@@ -1,0 +1,59 @@
+name: CI Frontend - Lint & Build
+
+on:
+  push:
+    paths:
+      - frontend/**
+    branches:
+      - "**"
+  pull_request:
+    paths:
+      - frontend/**
+    branches:
+      - main
+
+jobs:
+  frontend-ci:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [20]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Run ESLint
+        working-directory: frontend
+        run: npm run lint
+
+      - name: Run TypeScript type check
+        working-directory: frontend
+        run: npm run typecheck
+
+      - name: Build application
+        working-directory: frontend
+        run: npm run build
+
+      - name: Check build artifacts
+        working-directory: frontend
+        run: |
+          if [ -d "out" ]; then
+            echo "✅ Static export successful - 'out' directory exists"
+            ls -la out/
+          else
+            echo "❌ Build failed - no output directory found"
+            exit 1
+          fi
