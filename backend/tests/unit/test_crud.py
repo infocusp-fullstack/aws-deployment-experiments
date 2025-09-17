@@ -36,7 +36,14 @@ class Todo(Base):
 class TodoCreate:
     """Model for creating a new todo."""
 
-    def __init__(self, name: str, description: str, priority: str = "Low", completed: bool = False, due_date: str = "2025-12-31"):
+    def __init__(
+        self,
+        name: str,
+        description: str,
+        priority: str = "Low",
+        completed: bool = False,
+        due_date: str = "2025-12-31",
+    ):
         self.name = name
         self.description = description
         self.priority = priority
@@ -65,7 +72,9 @@ def db_session():
 
 # ---------- Tests ----------
 def test_create_todo(db_session):
-    todo_data = TodoCreate(name="Test Todo", description="A test description", priority="High")
+    todo_data = TodoCreate(
+        name="Test Todo", description="A test description", priority="High"
+    )
     todo = create_todo(db_session, todo_data)
 
     assert todo.id is not None
@@ -76,8 +85,24 @@ def test_create_todo(db_session):
 
 def test_get_todos(db_session):
     """Test retrieving multiple todos from the database."""
-    db_session.add(Todo(name="Todo 1", description="Desc 1", priority="High", completed=False, due_date=1672531200))
-    db_session.add(Todo(name="Todo 2", description="Desc 2", priority="Low", completed=True, due_date=1672531200))
+    db_session.add(
+        Todo(
+            name="Todo 1",
+            description="Desc 1",
+            priority="High",
+            completed=False,
+            due_date=1672531200,
+        )
+    )
+    db_session.add(
+        Todo(
+            name="Todo 2",
+            description="Desc 2",
+            priority="Low",
+            completed=True,
+            due_date=1672531200,
+        )
+    )
     db_session.commit()
 
     todos = get_todos(db_session)
@@ -87,7 +112,13 @@ def test_get_todos(db_session):
 
 def test_get_todo(db_session):
     """Test retrieving a single todo by ID."""
-    new_todo = Todo(name="Single", description="Only one", priority="Medium", completed=False, due_date=1672531200)
+    new_todo = Todo(
+        name="Single",
+        description="Only one",
+        priority="Medium",
+        completed=False,
+        due_date=1672531200,
+    )
     db_session.add(new_todo)
     db_session.commit()
 
@@ -99,7 +130,13 @@ def test_get_todo(db_session):
 
 def test_update_todo(db_session):
     """Test updating an existing todo."""
-    new_todo = Todo(name="Old", description="Old desc", priority="Low", completed=False, due_date=1672531200)
+    new_todo = Todo(
+        name="Old",
+        description="Old desc",
+        priority="Low",
+        completed=False,
+        due_date=1672531200,
+    )
     db_session.add(new_todo)
     db_session.commit()
 
@@ -113,7 +150,13 @@ def test_update_todo(db_session):
 
 def test_delete_todo(db_session):
     """Test deleting a todo from the database."""
-    new_todo = Todo(name="ToDelete", description="Delete me", priority="Medium", completed=False, due_date=1672531200)
+    new_todo = Todo(
+        name="ToDelete",
+        description="Delete me",
+        priority="Medium",
+        completed=False,
+        due_date=1672531200,
+    )
     db_session.add(new_todo)
     db_session.commit()
 
