@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { format, parseISO } from "date-fns";
-import { CalendarIcon, Loader2, Sparkles } from "lucide-react";
+import { CalendarIcon } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import type { Priority, Task } from "@/lib/types";
@@ -42,17 +42,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { useToast } from "@/hooks/use-toast";
-
-import { prioritizeTask } from "@/ai/flows/task-prioritization-assistant";
-import type { PrioritizeTaskOutput } from "@/ai/flows/task-prioritization-assistant";
 
 const taskFormSchema = z.object({
   name: z.string().min(1, "Title is required."),
   description: z.string().optional(),
   due_date: z.date({ required_error: "A due date is required." }),
-  priority: z.enum(["High", "Medium", "Low"]).optional(),
+  priority: z.enum(["High", "Medium", "Low"]),
 });
 
 type TaskFormValues = z.infer<typeof taskFormSchema>;
@@ -65,10 +60,6 @@ interface TaskFormProps {
 
 export function TaskForm({ open, onOpenChange, task }: TaskFormProps) {
   const { addTask, updateTask } = useTasks();
-  const { toast } = useToast();
-  const [aiSuggestion, setAiSuggestion] =
-    useState<PrioritizeTaskOutput | null>(null);
-  const [isAiLoading, setIsAiLoading] = useState(false);
 
   const form = useForm<TaskFormValues>({
     resolver: zodResolver(taskFormSchema),
@@ -80,60 +71,24 @@ export function TaskForm({ open, onOpenChange, task }: TaskFormProps) {
       : {
         name: "",
         description: "",
-        priority: "Low",
+        priority: "Low" as Priority,
+        due_date: new Date(),
       },
   });
-
-  const { watch } = form;
-  const watchedDescription = watch("description");
-  const watcheddue_date = watch("due_date");
 
   useEffect(() => {
     // Reset form when the task prop changes
     form.reset(
       task
         ? { ...task, due_date: parseISO(task.due_date) }
-        : { name: "", description: "", priority: "Low", due_date: "" }
+        : { name: "", description: "", priority: "Low" as Priority, due_date: new Date() }
     );
-    setAiSuggestion(null);
   }, [task, form, open]);
-
-  const handleGetSuggestion = async () => {
-    if (!watchedDescription || !watcheddue_date) {
-      toast({
-        variant: "destructive",
-        title: "Missing Information",
-        description: "Please provide a description and due date first.",
-      });
-      return;
-    }
-
-    setIsAiLoading(true);
-    setAiSuggestion(null);
-    try {
-      const suggestion = await prioritizeTask({
-        description: watchedDescription,
-        due_date: format(watcheddue_date, "yyyy-MM-dd"),
-      });
-      setAiSuggestion(suggestion);
-      form.setValue("priority", suggestion.priority as Priority);
-    } catch (error) {
-      console.error("AI prioritization failed:", error);
-      toast({
-        variant: "destructive",
-        title: "AI Assistant Error",
-        description: "Could not get a priority suggestion. Please try again.",
-      });
-    } finally {
-      setIsAiLoading(false);
-    }
-  };
 
   const onSubmit = (data: TaskFormValues) => {
     const taskData = {
       ...data,
       due_date: format(data.due_date, "yyyy-MM-dd"),
-      priorityReason: aiSuggestion?.reason,
     };
 
     if (task) {
@@ -252,33 +207,6 @@ export function TaskForm({ open, onOpenChange, task }: TaskFormProps) {
                     </FormItem>
                   )}
                 />
-              </div>
-
-              <div className="space-y-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={handleGetSuggestion}
-                  disabled={isAiLoading}
-                >
-                  {isAiLoading ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : (
-                    <Sparkles className="mr-2 h-4 w-4" />
-                  )}
-                  Suggest Priority
-                </Button>
-
-                {aiSuggestion && (
-                  <Alert>
-                    <Sparkles className="h-4 w-4" />
-                    <AlertTitle>AI Suggestion: {aiSuggestion.priority} Priority</AlertTitle>
-                    <AlertDescription>
-                      {aiSuggestion.reason}
-                    </AlertDescription>
-                  </Alert>
-                )}
               </div>
 
               <DialogFooter className="pt-4">

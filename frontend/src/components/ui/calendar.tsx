@@ -2,7 +2,8 @@
 
 import * as React from "react"
 import { ChevronLeft, ChevronRight } from "lucide-react"
-import { DayPicker, DayProps } from "react-day-picker"
+import { DayPicker } from "react-day-picker"
+import { format } from "date-fns"
 
 import { cn } from "@/lib/utils"
 import { buttonVariants } from "@/components/ui/button"
@@ -20,7 +21,6 @@ function Calendar({
 
   const handleTodayClick = () => {
     setMonth(new Date());
-    props.onSelect?.(new Date());
   };
 
 
@@ -69,16 +69,12 @@ function Calendar({
         IconRight: ({ className, ...props }) => (
           <ChevronRight className={cn("h-4 w-4", className)} {...props} />
         ),
-        Caption: ({...props}) => {
+        Caption: () => {
           return (
             <div className="flex justify-between items-center w-full">
-               <h2 className="text-xl font-medium">{format(props.displayMonth, 'MMMM yyyy')}</h2>
+               <h2 className="text-xl font-medium">{format(month, 'MMMM yyyy')}</h2>
                <div className="flex items-center gap-2">
                 <Button variant="outline" onClick={handleTodayClick} size="sm">Today</Button>
-                 <div className="flex items-center">
-                    <button onClick={props.onPreviousClick} className={cn(buttonVariants({ variant: "outline" }), "h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100")}><ChevronLeft className="h-4 w-4" /></button>
-                    <button onClick={props.onNextClick} className={cn(buttonVariants({ variant: "outline" }), "h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100")}><ChevronRight className="h-4 w-4" /></button>
-                 </div>
                </div>
             </div>
           )
@@ -92,7 +88,6 @@ function Calendar({
 }
 Calendar.displayName = "Calendar"
 
-import { format } from "date-fns"
 export { Calendar }
 
     

@@ -66,7 +66,7 @@ export function Dashboard() {
         <SidebarContent>
           <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton href="#" isActive>
+              <SidebarMenuButton isActive>
                 <LayoutGrid />
                 <span>Dashboard</span>
               </SidebarMenuButton>

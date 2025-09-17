@@ -1,13 +1,4 @@
-'use server';
-
-/**
- * @fileOverview Task Prioritization Assistant AI agent.
- *
- * - prioritizeTask - A function that analyzes task descriptions and suggests priority levels.
- * - PrioritizeTaskInput - The input type for the prioritizeTask function.
- * - PrioritizeTaskOutput - The return type for the prioritizeTask function.
- */
-
+import { NextRequest, NextResponse } from 'next/server';
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 
@@ -15,7 +6,6 @@ const PrioritizeTaskInputSchema = z.object({
   description: z.string().describe('The description of the task.'),
   due_date: z.string().describe('The due date of the task (YYYY-MM-DD).'),
 });
-export type PrioritizeTaskInput = z.infer<typeof PrioritizeTaskInputSchema>;
 
 const PrioritizeTaskOutputSchema = z.object({
   priority: z
@@ -25,11 +15,6 @@ const PrioritizeTaskOutputSchema = z.object({
     .string()
     .describe('The reasoning behind the suggested priority level.'),
 });
-export type PrioritizeTaskOutput = z.infer<typeof PrioritizeTaskOutputSchema>;
-
-export async function prioritizeTask(input: PrioritizeTaskInput): Promise<PrioritizeTaskOutput> {
-  return prioritizeTaskFlow(input);
-}
 
 const prompt = ai.definePrompt({
   name: 'prioritizeTaskPrompt',
@@ -56,3 +41,17 @@ const prioritizeTaskFlow = ai.defineFlow(
     return output!;
   }
 );
+
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const result = await prioritizeTaskFlow(body);
+    return NextResponse.json(result);
+  } catch (error) {
+    console.error('Error prioritizing task:', error);
+    return NextResponse.json(
+      { error: 'Failed to prioritize task' },
+      { status: 500 }
+    );
+  }
+}

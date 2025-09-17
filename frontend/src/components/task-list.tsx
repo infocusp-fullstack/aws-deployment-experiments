@@ -74,7 +74,7 @@ export function TaskList({ onEditTask, onDeleteTask, onViewTask }: TaskListProps
 
       switch (sortKey) {
         case "title":
-          return a.title.localeCompare(b.title) * dir;
+          return a.name.localeCompare(b.name) * dir;
         case "due_date":
           return (parseISO(a.due_date).getTime() - parseISO(b.due_date).getTime()) * dir;
         case "priority":
@@ -126,7 +126,7 @@ export function TaskList({ onEditTask, onDeleteTask, onViewTask }: TaskListProps
                   <Checkbox
                     checked={task.completed}
                     onCheckedChange={() => toggleComplete(task.id)}
-                    aria-label={`Mark task ${task.title} as ${task.completed ? 'incomplete' : 'complete'}`}
+                    aria-label={`Mark task ${task.name} as ${task.completed ? 'incomplete' : 'complete'}`}
                   />
                 </TableCell>
                 <TableCell
@@ -135,7 +135,7 @@ export function TaskList({ onEditTask, onDeleteTask, onViewTask }: TaskListProps
                     task.completed && "text-muted-foreground line-through"
                   )}
                 >
-                  {task.title}
+                  {task.name}
                 </TableCell>
                 <TableCell>
                   {task.priority && (

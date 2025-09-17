@@ -3,7 +3,7 @@
 import { format, parseISO } from "date-fns";
 import { Calendar, Edit, Sparkles, Tag } from "lucide-react";
 
-import type { Task } from "@/lib/types";
+import type { Task, Priority } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -28,17 +28,6 @@ const priorityBadgeVariant = {
   "Medium": "warning",
   "Low": "outline",
 } as const;
-
-type Priority = keyof typeof priorityBadgeVariant;
-
-interface Task {
-  priority: Priority;
-  id: string;
-  name: string;
-  description?: string;
-  due_date: string;
-  completed: boolean;
-}
 
 
 export function TaskDetailDialog({

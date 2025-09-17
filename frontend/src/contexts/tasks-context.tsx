@@ -84,19 +84,34 @@ export function TasksProvider({ children }: TasksProviderProps) {
     }
   }, []);
 
-  const addTask = async (taskData: Task) => {
+  const addTask = async (taskData: Omit<Task, "id" | "completed">) => {
     const response: any = await addTaskToAPI(taskData.name, taskData.description, taskData.priority, new Date(taskData.due_date));
-    setTasks((prevTasks) => [response, ...prevTasks]);
+    // Transform API response to match frontend types
+    const transformedTask = {
+      ...response,
+      id: String(response.id) // Convert number to string
+    };
+    setTasks((prevTasks) => [transformedTask, ...prevTasks]);
   };
 
   const fetchTasks = async () => {
     const response = await fetchTasksFromAPI();
-    setTasks(response);
+    // Transform API response to match frontend types
+    const transformedTasks = response.map(task => ({
+      ...task,
+      id: String(task.id) // Convert number to string
+    }));
+    setTasks(transformedTasks);
   }
 
   const updateTask = async (updatedTask: Task) => {
     const response: any = await updateTaskWithAPI(updatedTask.id, updatedTask.name, updatedTask.description, updatedTask.priority, new Date(updatedTask.due_date), updatedTask.completed);
-    setTasks((prevTasks) => [response, ...prevTasks.filter(task => task.id !== updatedTask.id)]);
+    // Transform API response to match frontend types
+    const transformedTask = {
+      ...response,
+      id: String(response.id) // Convert number to string
+    };
+    setTasks((prevTasks) => [transformedTask, ...prevTasks.filter(task => task.id !== updatedTask.id)]);
   };
 
   const deleteTask = useCallback((id: string) => {

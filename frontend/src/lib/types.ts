@@ -6,5 +6,5 @@ export interface Task {
   description?: string;
   due_date: string; // Stored as YYYY-MM-DD string for easy serialization
   completed: boolean;
-  priority: string;
+  priority: Priority;
 }
