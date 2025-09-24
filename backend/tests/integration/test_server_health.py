@@ -1,4 +1,5 @@
 import pytest
+import os
 from fastapi.testclient import TestClient
 
 from main import app
@@ -12,6 +13,6 @@ async def test_health_endpoint():
     Example integration test that hits the /health endpoint.
     Replace with your actual endpoint.
     """
-    response = client.get("/health")
+    response = client.get("/api/health")
     assert response.status_code == 200
-    assert response.json() == {"status": "ok"}
+    assert response.json() == {"status": "ok", "hostname": os.uname().nodename}

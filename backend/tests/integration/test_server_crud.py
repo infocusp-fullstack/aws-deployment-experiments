@@ -14,7 +14,7 @@ async def test_create_todo():
     An integration test that creates a todo.
     """
     response = client.post(
-        "/todos/",
+        "/api/todos",
         json={
             "name": "Test todo",
             "description": "A test todo description",
@@ -43,7 +43,7 @@ async def test_get_todos():
     """
     An integration test that retrieves todos.
     """
-    response = client.get("/todos/")
+    response = client.get("/api/todos")
     assert response.status_code == 200
     assert isinstance(response.json(), list)
 
@@ -54,7 +54,7 @@ async def test_get_todo():
     An integration test that retrieves a specific todo.
     """
     todo_id = created_todo_id if created_todo_id else 1
-    response = client.get(f"/todos/{todo_id}")
+    response = client.get(f"/api/todos/{todo_id}")
     assert response.status_code == 200
     response_data = response.json()
     assert response_data["id"] == todo_id
@@ -72,7 +72,7 @@ async def test_update_todo():
     """
     todo_id = created_todo_id if created_todo_id else 1
     response = client.put(
-        f"/todos/{todo_id}",
+        f"/api/todos/{todo_id}",
         json={
             "name": "Updated todo",
             "description": "Updated description",
@@ -97,10 +97,10 @@ async def test_delete_todo():
     An integration test that deletes a todo.
     """
     todo_id = created_todo_id if created_todo_id else 1
-    response = client.delete(f"/todos/{todo_id}")
+    response = client.delete(f"/api/todos/{todo_id}")
     assert response.status_code == 204
 
     # Verify the todo is deleted
-    response = client.get(f"/todos/{todo_id}")
+    response = client.get(f"/api/todos/{todo_id}")
     assert response.status_code == 404
     assert response.json() == {"detail": "Todo not found"}
