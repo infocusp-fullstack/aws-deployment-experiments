@@ -2,11 +2,10 @@ name: Frontend CD - Build and Deploy to S3
 
 on:
   push:
-    # paths:
-    #   - frontend/**
+    paths:
+      - frontend/**
     branches:
       - "main"
-      - "feat/fe-cd"
   pull_request:
     paths:
       - frontend/**
