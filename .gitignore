@@ -45,7 +45,6 @@ poetry.lock
 
 # dotenv environment variables
 *.env
-*.env.*
 
 # SQLite database
 *.db
