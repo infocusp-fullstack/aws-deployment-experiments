@@ -2,8 +2,8 @@ name: Frontend CD - Build and Deploy to S3
 
 on:
   push:
-    paths:
-      - frontend/**
+    # paths:
+    #   - frontend/**
     branches:
       - "main"
       - "feat/fe-cd"
@@ -53,19 +53,15 @@ jobs:
           cd ${{ env.FRONTEND_DIR }}
           npm run build
 
-      - name: 🔑 Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
+      - uses: shallwefootball/s3-upload-action@v1.3.3
+        name: 📤 Upload artifacts to S3
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}
-
-      - name: 📤 Upload artifacts to S3
-        uses: aws-actions/s3-sync@v2
-        with:
-          bucket: ${{ secrets.AWS_BUCKET }}
+          aws_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           region: ${{ secrets.AWS_REGION }}
-          source-dir: ${{ env.FRONTEND_DIR }}/out
+          aws_bucket: ${{ secrets.AWS_BUCKET }}
+          source_dir: ${{ env.FRONTEND_DIR }}/out
+          acl: private
 
       - name: 📊 Deployment Summary
         run: |
