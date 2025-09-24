@@ -7,12 +7,12 @@ from .database import get_db
 router = APIRouter()
 
 
-@router.post("/todos/", response_model=schemas.TodoRead, status_code=201)
+@router.post("/todos", response_model=schemas.TodoRead, status_code=201)
 def create_todo(todo: schemas.TodoCreate, db: Session = Depends(get_db)):
     """Create a new todo in the database.
 
     Routes:
-        POST /todos/
+        POST /todos
     Args:
         Todo (schemas.TodoCreate): Todo data to create.
         db (Session): Database session.
@@ -26,12 +26,12 @@ def create_todo(todo: schemas.TodoCreate, db: Session = Depends(get_db)):
         # raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
-@router.get("/todos/", response_model=list[schemas.TodoRead])
+@router.get("/todos", response_model=list[schemas.TodoRead])
 def read_todos(db: Session = Depends(get_db)):
     """Retrieve all todos from the database.
 
     Routes:
-        GET /todos/
+        GET /todos
     Args:
         db (Session): Database session.
     Returns:

@@ -1,7 +1,7 @@
 import axios from 'axios';
 import type { Task, Priority } from '@/lib/types';
 
-const BASE_URL = 'http://127.0.0.1:8000/todos';
+const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/todos";
 
 export async function fetchTasks(): Promise<Task[]> {
     const response = await axios.get<Task[]>(BASE_URL);

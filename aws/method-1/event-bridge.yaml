@@ -174,5 +174,5 @@ Resources:
               {
                 "executionTimeout":["60"],
                 "workingDirectory":["/home/ubuntu"],
-                "commands":["aws ecr get-login-password --region ${AWS::Region} | docker login --username AWS --password-stdin ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com && (docker pull ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${ECRRepoName}:latest && docker rm -f ${ECRRepoName} >/dev/null 2>&1 || true && docker run -d -p 3000:80 --name=${ECRRepoName} ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${ECRRepoName}:latest)"]
+                "commands":["aws ecr get-login-password --region ${AWS::Region} | docker login --username AWS --password-stdin ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com && (docker pull ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${ECRRepoName}:latest && docker rm -f ${ECRRepoName} >/dev/null 2>&1 || true && docker run -d -p 80:80 --name=${ECRRepoName} ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${ECRRepoName}:latest)"]
               }

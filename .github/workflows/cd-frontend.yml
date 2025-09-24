@@ -1,0 +1,62 @@
+name: Frontend CD - Build and Deploy to S3
+
+on:
+  push: 
+    branches: 
+      - "main"
+      - "feat/fe-cd"
+  pull_request:
+    branches: 
+      - "main"
+
+env:
+  NODE_VERSION: "23"
+  FRONTEND_DIR: "./frontend"
+
+jobs:
+  build-and-deploy-to-s3:
+    name: 🚀 Build and Deploy to S3
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: ⚡ Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+          cache-dependency-path: ${{ env.FRONTEND_DIR }}/package-lock.json
+
+      - name: 📦 Install dependencies
+        run: |
+          cd ${{ env.FRONTEND_DIR }}
+          npm ci
+
+      - name: 🔍 Run ESLint
+        run: |
+          cd ${{ env.FRONTEND_DIR }}
+          npm run lint
+
+      - name: 🔧 Type check
+        run: |
+          cd ${{ env.FRONTEND_DIR }}
+          npm run typecheck
+
+      - name: 🏗️ Build application
+        run: |
+          cd ${{ env.FRONTEND_DIR }}
+          npm run build
+
+      - uses: shallwefootball/s3-upload-action@v1.3.3
+        name: 📤 Upload artifacts to S3
+        with:
+          aws_key_id: ${{ secrets.AWS_KEY_ID }}
+          aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY}}
+          aws_bucket: ${{ secrets.AWS_BUCKET }}
+          source_dir: ${{ env.FRONTEND_DIR }}/out
+
+      - name: 📊 Deployment Summary
+        run: |
+          echo "✅ Deployment to S3 bucket ${{ secrets.AWS_BUCKET }} completed successfully!"
