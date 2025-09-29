@@ -17,6 +17,27 @@ Parameters:
     Type: String
     Default: ssh_access_key
 
+  ALBName:
+    Description: Name of the Application Load Balancer
+    Type: String
+    Default: aws-experiments-m1
+
+  TaskVPCID:
+    Description: VPC ID where the ECS tasks will run
+    Type: String
+    Default: vpc-0b28acb0cb7c676f9
+
+  TaskVPCSubnets:
+    Description: Comma-separated list of VPC Subnet IDs for the ECS tasks
+    Type: CommaDelimitedList
+    Default: subnet-0ef08e10d6000f307,subnet-0a960f1032e9dc58e,subnet-0009006416de50ea2
+
+  TaskSecurityGroup:
+    Description: Security Group ID for the ECS tasks
+    Type: String
+    Default: sg-0cba23d8bf0e1d3ef
+    MinLength: 1
+
   ECRRepoName:
     Description: Name of the ECR Repository
     Type: String
@@ -32,14 +53,27 @@ Parameters:
     Type: String
     Default: aws-deployment-experiments-event-rule
 
+  S3BucketName:
+    Description: S3 Bucket Name
+    Type: String
+    Default: aws-deployment-experiments-frontend
+
+  WebsiteOriginIDName:
+    Description: CloudFront Origin ID for S3 Bucket
+    Type: String
+    Default: S3Origin
+
 Resources:
+  # ---------------------------------------------------------------------------
+  # EC2 INSTANCE & SSM ROLE
+  # ---------------------------------------------------------------------------
   EC2SSMRole:
     Type: AWS::IAM::Role
     DeletionPolicy: Retain
     Properties:
       RoleName: EC2SSMRole
       Description: Role for EC2 instances to use SSM
-      AssumeRolePolicyDocument: 
+      AssumeRolePolicyDocument:
         Version: "2012-10-17"
         Statement:
           - Effect: Allow
@@ -47,8 +81,8 @@ Resources:
               Service:
                 - ec2.amazonaws.com
             Action:
-              - 'sts:AssumeRole'
-      
+              - "sts:AssumeRole"
+
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryPullOnly
         - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
@@ -86,24 +120,24 @@ Resources:
             VolumeSize: 8
             DeleteOnTermination: true
 
-      UserData: 
+      UserData:
         Fn::Base64: !Sub |
           #!/bin/bash
           apt-get update
           apt-get install -y ca-certificates curl unzip
-          
+
           install -m 0755 -d /etc/apt/keyrings
           curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
           chmod a+r /etc/apt/keyrings/docker.asc
-          
+
           echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo "$UBUNTU_CODENAME") stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
-          
+
           apt-get update
           apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
-          
+
           groupadd docker 2>/dev/null || true
           usermod -aG docker ubuntu
-          
+
           curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
           unzip awscliv2.zip
           ./aws/install
@@ -112,6 +146,9 @@ Resources:
         - Key: Name
           Value: !Ref EC2InstanceName
 
+  # ---------------------------------------------------------------------------
+  # EVENT BRIDGE RULE + ROLE + POLICY
+  # ---------------------------------------------------------------------------
   EventBridgeRole:
     Type: AWS::IAM::Role
     Properties:
@@ -140,7 +177,7 @@ Resources:
             Resource:
               - !Sub arn:${AWS::Partition}:ec2:${AWS::Region}:${AWS::AccountId}:instance/${PublicEC2}
               - !Sub arn:${AWS::Partition}:ssm:${AWS::Region}:*:document/AWS-RunShellScript
-  
+
   EventBridgeRule:
     Type: AWS::Events::Rule
     DependsOn:
@@ -171,8 +208,192 @@ Resources:
                 Values:
                   - !Ref PublicEC2
           Input: !Sub |
-              {
-                "executionTimeout":["60"],
-                "workingDirectory":["/home/ubuntu"],
-                "commands":["aws ecr get-login-password --region ${AWS::Region} | docker login --username AWS --password-stdin ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com && (docker pull ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${ECRRepoName}:latest && docker rm -f ${ECRRepoName} >/dev/null 2>&1 || true && docker run -d -p 80:80 --name=${ECRRepoName} ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${ECRRepoName}:latest)"]
-              }
+            {
+              "executionTimeout":["60"],
+              "workingDirectory":["/home/ubuntu"],
+              "commands":["aws ecr get-login-password --region ${AWS::Region} | docker login --username AWS --password-stdin ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com && (docker pull ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${ECRRepoName}:latest && docker rm -f ${ECRRepoName} >/dev/null 2>&1 || true && docker run -d -p 80:80 --name=${ECRRepoName} ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${ECRRepoName}:latest)"]
+            }
+
+  # ---------------------------------------------------------------------------
+  # S3 - STATIC WEBSITE + BUCKET POLICY
+  # ---------------------------------------------------------------------------
+  StaticWebsiteS3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref S3BucketName
+      Tags:
+        - Key: Context
+          Value: aws-deployment-experiments
+
+  S3OACPolicy:
+    Type: AWS::CloudFront::OriginAccessControl
+    Properties:
+      OriginAccessControlConfig:
+        Name: S3OACPolicy
+        Description: Origin Access Control for S3 Bucket
+        OriginAccessControlOriginType: s3
+        SigningBehavior: always
+        SigningProtocol: sigv4
+
+  # ---------------------------------------------------------------------------
+  # LOAD BALANCER - TARGET GROUP
+  # ---------------------------------------------------------------------------
+  LoadBalancerTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    DependsOn: PublicEC2
+    Properties:
+      HealthCheckEnabled: true
+      HealthCheckIntervalSeconds: 30
+      HealthCheckPath: /api/health
+      HealthCheckPort: "80"
+      HealthCheckProtocol: HTTP
+      HealthCheckTimeoutSeconds: 5
+      HealthyThresholdCount: 5
+      UnhealthyThresholdCount: 5
+      Name: !Sub "${ALBName}-tg-m1"
+      VpcId: !Ref TaskVPCID
+      TargetType: instance
+      IpAddressType: ipv4
+      ProtocolVersion: HTTP1
+      Protocol: HTTP
+      Port: 80
+      Targets:
+        - Id: !Ref PublicEC2
+          Port: 80
+
+  # --------------------------------------------------------------------------
+  # LOAD BALANCER - ALB
+  # ---------------------------------------------------------------------------
+  ApplicationLoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    DependsOn: PublicEC2
+    Properties:
+      IpAddressType: ipv4
+      Name: !Sub "${ALBName}-alb-m1"
+      Scheme: internet-facing
+      SecurityGroups:
+        - !Ref TaskSecurityGroup
+      Subnets: !Ref TaskVPCSubnets
+      Type: application
+
+  # ---------------------------------------------------------------------------
+  # LOAD BALANCER - LISTENER
+  # ---------------------------------------------------------------------------
+  LoadBalancerListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    DependsOn: PublicEC2
+    Properties:
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref LoadBalancerTargetGroup
+      LoadBalancerArn: !Ref ApplicationLoadBalancer
+      Port: 80
+      Protocol: HTTP
+
+  # ---------------------------------------------------------------------------
+  # CLOUDFRONT CDN
+  # ---------------------------------------------------------------------------
+  M1CloudfrontDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Enabled: true
+        ConnectionMode: direct
+        DefaultCacheBehavior:
+          AllowedMethods:
+            - GET
+            - HEAD
+          CachedMethods:
+            - GET
+            - HEAD
+          Compress: true
+          CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6 # CachingOptimized
+          TargetOriginId: !Ref WebsiteOriginIDName
+          ViewerProtocolPolicy: redirect-to-https
+
+        CacheBehaviors:
+          - PathPattern: /api/*
+            AllowedMethods:
+              - GET
+              - HEAD
+              - OPTIONS
+              - PUT
+              - POST
+              - PATCH
+              - DELETE
+            CachedMethods:
+              - GET
+              - HEAD
+            Compress: true
+            CachePolicyId: 4135ea2d-6df8-44a3-9df3-4b5a84be39ad # CachingDisabled
+            TargetOriginId: ALBOrigin
+            ViewerProtocolPolicy: allow-all
+
+        Origins:
+          # S3
+          - DomainName: !GetAtt StaticWebsiteS3Bucket.RegionalDomainName
+            Id: !Ref WebsiteOriginIDName
+            S3OriginConfig: {}
+            OriginAccessControlId: !Sub ${S3OACPolicy}
+
+          # ALB
+          - DomainName: !GetAtt ApplicationLoadBalancer.DNSName
+            Id: ALBOrigin
+            CustomOriginConfig:
+              HTTPPort: 80
+              OriginProtocolPolicy: http-only
+              OriginSSLProtocols:
+                - TLSv1.2
+
+        DefaultRootObject: index.html
+
+      Tags:
+        - Key: Name
+          Value: aws-deployment-experiments-cdn-m1
+
+  StaticWebsiteBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref StaticWebsiteS3Bucket
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: cloudfront.amazonaws.com
+            Action: s3:GetObject
+            Resource: !Sub "${StaticWebsiteS3Bucket.Arn}/*"
+            Condition:
+              StringEquals:
+                "AWS:SourceArn": !Sub "arn:aws:cloudfront::${AWS::AccountId}:distribution/${M1CloudfrontDistribution}"
+
+Outputs:
+  S3BucketName:
+    Description: S3 Bucket Name
+    Value: !Ref StaticWebsiteS3Bucket
+    Export:
+      Name: S3BucketName
+
+  S3BucketArn:
+    Description: S3 Bucket ARN
+    Value: !GetAtt StaticWebsiteS3Bucket.Arn
+    Export:
+      Name: S3BucketArn
+
+  S3BucketDomainName:
+    Description: S3 Bucket Domain Name
+    Value: !GetAtt StaticWebsiteS3Bucket.RegionalDomainName
+    Export:
+      Name: S3BucketDomainName
+
+  M1S3OACPolicy:
+    Description: S3 Origin Access Control Policy ID
+    Value: !Ref S3OACPolicy
+    Export:
+      Name: M1S3OACPolicy
+
+  M1CloudfrontDistributionID:
+    Description: CloudFront Distribution ID
+    Value: !Ref M1CloudfrontDistribution
+    Export:
+      Name: M1CloudfrontDistributionID
