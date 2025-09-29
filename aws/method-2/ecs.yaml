@@ -267,10 +267,13 @@ Resources:
       Tags:
         - Key: Name
           Value: aws-deployment-experiments-cdn-m2
+        - Key: Description
+          Value: Method 2 CDN
 
   StaticWebsiteBucketPolicy:
     Type: AWS::S3::BucketPolicy
     DependsOn: M2CloudfrontDistribution
+    DeletionPolicy: Retain
     Properties:
       Bucket: !ImportValue S3BucketName
       PolicyDocument:

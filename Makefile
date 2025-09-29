@@ -33,58 +33,36 @@ setup-aws:
 	@printf "\n"
 	@printf "$(BLUE)$(BOLD)📁 Available CloudFormation Deployment Methods:$(RESET)\n"
 	@printf "\n"
-	@printf "$(MAGENTA)$(BOLD)  1.$(RESET) $(CYAN)Method 0 - S3 + CloudFront$(RESET)\n"
-	@printf "     📄 Templates: s3-cloudfront.yaml\n"
-	@printf "     🎯 Purpose: Static website hosting with CDN\n"
-	@printf "\n"
-	@printf "$(MAGENTA)$(BOLD)  2.$(RESET) $(CYAN)Method 1 - Event Bridge + Security Group$(RESET)\n"  
+	@printf "$(MAGENTA)$(BOLD)  1.$(RESET) $(CYAN)Method 1 - Event Bridge + Security Group$(RESET)\n"  
 	@printf "     📄 Templates: event-bridge.yaml, security-group.yaml\n"
-	@printf "     🎯 Purpose: Event-driven architecture with networking\n"
+	@printf "     🎯 Purpose: Ec2 compute with ALB and automated deployment using EventBridge\n"
 	@printf "\n"
-	@printf "$(MAGENTA)$(BOLD)  3.$(RESET) $(CYAN)Method 2 - ECS Container Service$(RESET)\n"
+	@printf "$(MAGENTA)$(BOLD)  2.$(RESET) $(CYAN)Method 2 - ECS Container Service$(RESET)\n"
 	@printf "     📄 Templates: ecs.yaml\n"
-	@printf "     🎯 Purpose: Containerized application deployment\n"
+	@printf "     🎯 Purpose: AWS Managed containerized application deployment\n"
 	@printf "\n"
-	@printf "$(YELLOW)$(BOLD)Please select a deployment method (1-3):$(RESET) "
+	@printf "$(YELLOW)$(BOLD)Please select a deployment method (1-2):$(RESET) "
 	@read choice; \
 	case $$choice in \
 		1) \
 			printf "\n"; \
-			printf "$(GREEN)$(BOLD)🚀 Deploying Method 0 - S3 + CloudFront$(RESET)\n"; \
-			$(MAKE) deploy-method-0; \
-			;; \
-		2) \
-			printf "\n"; \
 			printf "$(GREEN)$(BOLD)🚀 Deploying Method 1 - Event Bridge + Security Group$(RESET)\n"; \
 			$(MAKE) deploy-method-1; \
 			;; \
-		3) \
+		2) \
 			printf "\n"; \
 			printf "$(GREEN)$(BOLD)🚀 Deploying Method 2 - ECS Container Service$(RESET)\n"; \
 			$(MAKE) deploy-method-2; \
 			;; \
 		*) \
 			printf "\n"; \
-			printf "$(RED)❌ Invalid selection. Please choose 1, 2, or 3.$(RESET)\n"; \
+			printf "$(RED)❌ Invalid selection. Please choose 1 or 2.$(RESET)\n"; \
 			exit 1; \
 			;; \
 	esac
 
-deploy-method-0:
-	@printf "$(CYAN)$(BOLD)🔧 Deploying S3 + CloudFront Stack...$(RESET)\n"
-	@printf "$(YELLOW)📁 Template: aws/method-0/s3-cloudfront.yaml$(RESET)\n"
-	@printf "\n"
-	@aws cloudformation deploy \
-		--template-file aws/method-0/s3-cloudfront.yaml \
-		--stack-name s3-cloudfront-stack \
-		--profile $(AWS_PROFILE) \
-		--capabilities CAPABILITY_IAM \
-		--no-fail-on-empty-changeset
-	@printf "\n"
-	@printf "$(GREEN)✅ Method 0 deployment completed successfully!$(RESET)\n"
-
 deploy-method-1:
-	@printf "$(CYAN)$(BOLD)🔧 Deploying Event Bridge + Security Group Stack...$(RESET)\n"
+	@printf "$(CYAN)$(BOLD)🔧 Deploying EC2 + Event Bridge + Security Group Stack...$(RESET)\n"
 	@printf "$(YELLOW)📁 Templates: aws/method-1/security-group.yaml, aws/method-1/event-bridge.yaml$(RESET)\n"
 	@printf "\n"
 	@printf "$(BLUE)🔒 Deploying Security Group first...$(RESET)\n"
@@ -134,7 +112,6 @@ cleanup:
 	@read confirm; \
 	if [ "$$confirm" = "y" ] || [ "$$confirm" = "Y" ]; then \
 		printf "$(RED)🗑️  Deleting stacks...$(RESET)\n"; \
-		aws cloudformation delete-stack --stack-name s3-cloudfront-stack --profile $(AWS_PROFILE) 2>/dev/null || true; \
 		aws cloudformation delete-stack --stack-name event-bridge-stack --profile $(AWS_PROFILE) 2>/dev/null || true; \
 		aws cloudformation delete-stack --stack-name security-group-stack --profile $(AWS_PROFILE) 2>/dev/null || true; \
 		aws cloudformation delete-stack --stack-name ecs-stack --profile $(AWS_PROFILE) 2>/dev/null || true; \
@@ -143,7 +120,7 @@ cleanup:
 		printf "$(BLUE)ℹ️  Cleanup cancelled.$(RESET)\n"; \
 	fi
 
-.PHONY: setup-aws deploy-method-0 deploy-method-1 deploy-method-2 list-stacks cleanup help
+.PHONY: setup-aws deploy-method-1 deploy-method-2 list-stacks cleanup help
 
 help:
 	@printf "$(CYAN)$(BOLD)🚀 AWS CloudFormation Deployment Tool$(RESET)\n"
@@ -157,7 +134,6 @@ help:
 	@printf "  $(GREEN)make help$(RESET)           - Show this help message\n"
 	@printf "\n"
 	@printf "$(BLUE)$(BOLD)Direct deployment options:$(RESET)\n"
-	@printf "  $(GREEN)make deploy-method-0$(RESET) - Deploy S3 + CloudFront\n"
 	@printf "  $(GREEN)make deploy-method-1$(RESET) - Deploy Event Bridge + Security Group\n"
 	@printf "  $(GREEN)make deploy-method-2$(RESET) - Deploy ECS Container Service\n"
 	@printf "\n"
