@@ -30,23 +30,28 @@ Parameters:
   ALBName:
     Description: Name of the Application Load Balancer
     Type: String
-    Default: aws-experiments
+    Default: aws-experiments-m2
 
   TaskVPCID:
     Description: VPC ID where the ECS tasks will run
     Type: String
-    Default: vpc-0a1b2c3d4e5f6g7h8
+    Default: vpc-0b28acb0cb7c676f9
 
   TaskVPCSubnets:
     Description: Comma-separated list of VPC Subnet IDs for the ECS tasks
     Type: CommaDelimitedList
-    Default: subnet-0bb1c79de3EXAMPLE,subnet-064f6b8e4eEXAMPLE
+    Default: subnet-0ef08e10d6000f307,subnet-0a960f1032e9dc58e,subnet-0009006416de50ea2
 
   TaskSecurityGroup:
     Description: Security Group ID for the ECS tasks
     Type: String
-    Default: sg-0a1b2c3d4e5f6g7h8
+    Default: sg-0cba23d8bf0e1d3ef
     MinLength: 1
+
+  WebsiteOriginIDName:
+    Description: CloudFront Origin ID for S3 Bucket
+    Type: String
+    Default: S3Origin
 
 Resources:
   # ---------------------------------------------------------------------------
@@ -69,7 +74,7 @@ Resources:
     Properties:
       RoleName: !Ref ECSTaskExecutionRoleName
       Description: Role for ECS tasks to pull images and write logs
-      AssumeRolePolicyDocument: 
+      AssumeRolePolicyDocument:
         Version: "2012-10-17"
         Statement:
           - Effect: Allow
@@ -77,8 +82,8 @@ Resources:
               Service:
                 - ecs-tasks.amazonaws.com
             Action:
-              - 'sts:AssumeRole'
-      
+              - "sts:AssumeRole"
+
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
 
@@ -130,13 +135,13 @@ Resources:
     Properties:
       HealthCheckEnabled: true
       HealthCheckIntervalSeconds: 30
-      HealthCheckPath: /health
+      HealthCheckPath: /api/health
       HealthCheckPort: "80"
       HealthCheckProtocol: HTTP
       HealthCheckTimeoutSeconds: 5
       HealthyThresholdCount: 5
       UnhealthyThresholdCount: 2
-      Name: !Sub "${ALBName}-tg"
+      Name: !Sub "${ALBName}-tg-m2"
       VpcId: !Ref TaskVPCID
       TargetType: ip
       IpAddressType: ipv4
@@ -151,7 +156,7 @@ Resources:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
     Properties:
       IpAddressType: ipv4
-      Name: !Sub "${ALBName}-alb"
+      Name: !Sub "${ALBName}-alb-m2"
       Scheme: internet-facing
       SecurityGroups:
         - !Ref TaskSecurityGroup
@@ -163,6 +168,9 @@ Resources:
   # ---------------------------------------------------------------------------
   LoadBalancerListener:
     Type: AWS::ElasticLoadBalancingV2::Listener
+    DependsOn:
+      - ApplicationLoadBalancer
+      - LoadBalancerTargetGroup
     Properties:
       DefaultActions:
         - Type: forward
@@ -170,12 +178,13 @@ Resources:
       LoadBalancerArn: !Ref ApplicationLoadBalancer
       Port: 80
       Protocol: HTTP
-  
+
   # ---------------------------------------------------------------------------
   # ECS SERVICE
   # ---------------------------------------------------------------------------
   ECSService:
     Type: AWS::ECS::Service
+    DependsOn: LoadBalancerListener
     Properties:
       AvailabilityZoneRebalancing: DISABLED
       Cluster: !Ref ECSCluster
@@ -199,7 +208,90 @@ Resources:
         - Key: Name
           Value: !Ref ECSServiceName
 
-Outputs:
-  ECSClusterName:
-    Description: Name of the ECS Cluster
-    Value: !Ref ECSClusterName
+  # ---------------------------------------------------------------------------
+  # CLOUDFRONT CDN
+  # ---------------------------------------------------------------------------
+  M2CloudfrontDistribution:
+    Type: AWS::CloudFront::Distribution
+    DependsOn: ApplicationLoadBalancer
+    Properties:
+      DistributionConfig:
+        Enabled: true
+        ConnectionMode: direct
+        DefaultRootObject: index.html
+        DefaultCacheBehavior:
+          AllowedMethods:
+            - GET
+            - HEAD
+          CachedMethods:
+            - GET
+            - HEAD
+          Compress: true
+          CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6 # CachingOptimized
+          TargetOriginId: !Ref WebsiteOriginIDName
+          ViewerProtocolPolicy: redirect-to-https
+
+        CacheBehaviors:
+          - PathPattern: /api/*
+            AllowedMethods:
+              - GET
+              - HEAD
+              - OPTIONS
+              - PUT
+              - POST
+              - PATCH
+              - DELETE
+            CachedMethods:
+              - GET
+              - HEAD
+            Compress: true
+            CachePolicyId: 4135ea2d-6df8-44a3-9df3-4b5a84be39ad # CachingDisabled
+            TargetOriginId: ALBOrigin
+            ViewerProtocolPolicy: allow-all
+
+        Origins:
+          # S3
+          - DomainName: !ImportValue S3BucketDomainName
+            Id: !Ref WebsiteOriginIDName
+            S3OriginConfig: {}
+            OriginAccessControlId: !ImportValue M1S3OACPolicy
+
+          # ALB
+          - DomainName: !GetAtt ApplicationLoadBalancer.DNSName
+            Id: ALBOrigin
+            CustomOriginConfig:
+              HTTPPort: 80
+              OriginProtocolPolicy: http-only
+              OriginSSLProtocols:
+                - TLSv1.2
+      Tags:
+        - Key: Name
+          Value: aws-deployment-experiments-cdn-m2
+        - Key: Description
+          Value: Method 2 CDN
+
+  StaticWebsiteBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    DependsOn: M2CloudfrontDistribution
+    DeletionPolicy: Retain
+    Properties:
+      Bucket: !ImportValue S3BucketName
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: cloudfront.amazonaws.com
+            Action: s3:GetObject
+            Resource: !Sub
+              - "${BucketArn}/*"
+              - { BucketArn: !ImportValue S3BucketArn }
+            Condition:
+              StringEquals:
+                "AWS:SourceArn":
+                  - !Sub "arn:aws:cloudfront::${AWS::AccountId}:distribution/${M2CloudfrontDistribution}"
+                  - !Sub
+                    - "arn:aws:cloudfront::${AWS::AccountId}:distribution/${M1Distribution}"
+                    - {
+                        M1Distribution: !ImportValue M1CloudfrontDistributionID,
+                      }

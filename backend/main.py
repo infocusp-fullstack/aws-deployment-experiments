@@ -1,7 +1,8 @@
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
+import os
 
 from app import database, models, routes
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 models.Base.metadata.create_all(bind=database.engine)
 
@@ -15,6 +16,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.router.prefix = "/api"
 
 app.include_router(routes.router)
 
@@ -23,4 +25,4 @@ app.include_router(routes.router)
 @app.get("/health")
 def health_check():
     """Health check endpoint to verify the server is running."""
-    return {"status": "ok"}
+    return {"status": "ok", "hostname": os.uname().nodename}
