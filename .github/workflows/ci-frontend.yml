@@ -6,11 +6,6 @@ on:
       - frontend/**
     branches:
       - "**"
-  pull_request:
-    paths:
-      - frontend/**
-    branches:
-      - main
 
 jobs:
   frontend-ci:
