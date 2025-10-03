@@ -26,4 +26,3 @@ app.include_router(routes.router)
 def health_check():
     """Health check endpoint to verify the server is running."""
     return {"status": "ok", "hostname": os.uname().nodename}
-    

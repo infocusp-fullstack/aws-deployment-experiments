@@ -6,11 +6,6 @@ on:
       - backend/**
     branches:
       - "**"
-  pull_request:
-    paths:
-      - backend/**
-    branches:
-      - main
 
 jobs:
   backend-ci:
