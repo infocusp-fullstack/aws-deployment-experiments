@@ -1,4 +1,5 @@
 AWS_PROFILE = default
+AWS_REGION = ap-south-1
 
 CYAN = \033[36m
 YELLOW = \033[33m
@@ -41,7 +42,11 @@ setup-aws:
 	@printf "     📄 Templates: ecs.yaml\n"
 	@printf "     🎯 Purpose: AWS Managed containerized application deployment\n"
 	@printf "\n"
-	@printf "$(YELLOW)$(BOLD)Please select a deployment method (1-2):$(RESET) "
+	@printf "$(MAGENTA)$(BOLD)  3.$(RESET) $(CYAN)Method 3 - EKS Kubernetes Service$(RESET)\n"
+	@printf "     📄 Templates: eks.yaml\n"
+	@printf "     🎯 Purpose: AWS Managed Kubernetes service deployment\n"
+	@printf "\n"
+	@printf "$(YELLOW)$(BOLD)Please select a deployment method (1-3):$(RESET) "
 	@read choice; \
 	case $$choice in \
 		1) \
@@ -54,9 +59,14 @@ setup-aws:
 			printf "$(GREEN)$(BOLD)🚀 Deploying Method 2 - ECS Container Service$(RESET)\n"; \
 			$(MAKE) deploy-method-2; \
 			;; \
+		3) \
+			printf "\n"; \
+			printf "$(GREEN)$(BOLD)🚀 Deploying Method 3 - EKS Kubernetes Service$(RESET)\n"; \
+			$(MAKE) deploy-method-3; \
+			;; \
 		*) \
 			printf "\n"; \
-			printf "$(RED)❌ Invalid selection. Please choose 1 or 2.$(RESET)\n"; \
+			printf "$(RED)❌ Invalid selection. Please choose 1, 2, or 3.$(RESET)\n"; \
 			exit 1; \
 			;; \
 	esac
@@ -96,6 +106,19 @@ deploy-method-2:
 	@printf "\n"
 	@printf "$(GREEN)✅ Method 2 deployment completed successfully!$(RESET)\n"
 
+deploy-method-3:
+	@printf "$(CYAN)$(BOLD)🔧 Deploying EKS Kubernetes Service Stack...$(RESET)\n"
+	@printf "$(YELLOW)📁 Template: aws/method-3/eks.yaml$(RESET)\n"
+	@printf "\n"
+	@aws cloudformation deploy \
+		--template-file aws/method-3/eks.yaml \
+		--stack-name eks-stack \
+		--profile $(AWS_PROFILE) \
+		--capabilities CAPABILITY_NAMED_IAM \
+		--no-fail-on-empty-changeset
+	@printf "\n"
+	@printf "$(GREEN)✅ Method 3 deployment completed successfully!$(RESET)\n"
+
 list-stacks:
 	@printf "$(CYAN)$(BOLD)📋 Current CloudFormation Stacks:$(RESET)\n"
 	@printf "\n"
@@ -105,6 +128,10 @@ list-stacks:
 		--query 'StackSummaries[].{Name:StackName,Status:StackStatus,Created:CreationTime}' \
 		--output table
 
+kubeconfig:
+	@printf "$(CYAN)$(BOLD)🔧 Updating kubeconfig for EKS Cluster...$(RESET)\n"
+	@aws eks update-kubeconfig --region $(AWS_REGION) --name aws-deployments-eks-cluster --profile $(AWS_PROFILE)
+	@printf "$(GREEN)✅ kubeconfig updated successfully!$(RESET)\n"
 
 cleanup:
 	@printf "$(YELLOW)$(BOLD)⚠️  This will delete ALL CloudFormation stacks created by this tool.$(RESET)\n"
@@ -115,12 +142,13 @@ cleanup:
 		aws cloudformation delete-stack --stack-name event-bridge-stack --profile $(AWS_PROFILE) 2>/dev/null || true; \
 		aws cloudformation delete-stack --stack-name security-group-stack --profile $(AWS_PROFILE) 2>/dev/null || true; \
 		aws cloudformation delete-stack --stack-name ecs-stack --profile $(AWS_PROFILE) 2>/dev/null || true; \
+		aws cloudformation delete-stack --stack-name eks-stack --profile $(AWS_PROFILE) 2>/dev/null || true; \
 		printf "$(GREEN)✅ Cleanup initiated. Stacks are being deleted...$(RESET)\n"; \
 	else \
 		printf "$(BLUE)ℹ️  Cleanup cancelled.$(RESET)\n"; \
 	fi
 
-.PHONY: setup-aws deploy-method-1 deploy-method-2 list-stacks cleanup help
+.PHONY: setup-aws deploy-method-1 deploy-method-2 deploy-method-3 list-stacks cleanup help
 
 help:
 	@printf "$(CYAN)$(BOLD)🚀 AWS CloudFormation Deployment Tool$(RESET)\n"
@@ -136,5 +164,6 @@ help:
 	@printf "$(BLUE)$(BOLD)Direct deployment options:$(RESET)\n"
 	@printf "  $(GREEN)make deploy-method-1$(RESET) - Deploy Event Bridge + Security Group\n"
 	@printf "  $(GREEN)make deploy-method-2$(RESET) - Deploy ECS Container Service\n"
+	@printf "  $(GREEN)make deploy-method-3$(RESET) - Deploy EKS Kubernetes Service\n"
 	@printf "\n"
 	@printf "$(MAGENTA)💡 Tip: Run '$(BOLD)make setup-aws$(RESET)$(MAGENTA)' for interactive deployment$(RESET)\n"
