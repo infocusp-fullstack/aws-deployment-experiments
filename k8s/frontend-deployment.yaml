@@ -1,20 +1,20 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: aws-deployments-backend
+  name: aws-deployments-frontend
 spec:
   selector:
     matchLabels:
-      app: backend
+      app: frontend
   replicas: 3
   template:
     metadata:
       labels:
-        app: backend
+        app: frontend
     spec:
       containers:
-      - name: backend
-        image: 266735827942.dkr.ecr.ap-south-1.amazonaws.com/aws-deployment-experiments-backend:latest
+      - name: frontend
+        image: 266735827942.dkr.ecr.ap-south-1.amazonaws.com/aws-deployment-experiments-frontend:latest
         ports:
         - containerPort: 80
         resources:
@@ -28,11 +28,11 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: backend-service
+  name: frontend-service
 spec:
   type: ClusterIP
   selector:
-    app: backend
+    app: frontend
   ports:
     - port: 80
       targetPort: 80
