@@ -1,19 +1,20 @@
-name: Frontend CD - Build and Push to ECR
+name: Frontend CD - Build and Deploy to S3
 
 on:
-  push:
-    paths:
-      - frontend/**
-    branches:
-      - "main"
+  workflow_dispatch:
+  # push:
+  #   paths:
+  #     - frontend/**
+  #   branches:
+  #     - "main"
 
 env:
   NODE_VERSION: "22"
   FRONTEND_DIR: "./frontend"
 
 jobs:
-  build-and-push:
-    name: 🚀 Build and Push to ECR
+  build-and-deploy-to-s3:
+    name: 🚀 Build and Deploy to S3
     runs-on: ubuntu-latest
 
     steps:
@@ -42,6 +43,11 @@ jobs:
           cd ${{ env.FRONTEND_DIR }}
           npm run typecheck
 
+      - name: 🏗️ Build application
+        run: |
+          cd ${{ env.FRONTEND_DIR }}
+          npm run build
+
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -49,29 +55,9 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-        with:
-          driver-opts: image=moby/buildkit:buildx-stable-1
-
-      - name: Log in to Amazon ECR
-        uses: aws-actions/amazon-ecr-login@v2
-
-      - name: 🐳 Build and push Docker image
-        uses: docker/build-push-action@v5
-        with:
-          context: ./frontend
-          push: true
-          tags: |
-            ${{ secrets.ECR_REPOSITORY_FRONTEND }}:${{ github.sha }}
-            ${{ secrets.ECR_REPOSITORY_FRONTEND }}:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-          platforms: linux/amd64
-          provenance: false
-          sbom: false
+      - name: 📤 Upload to S3
+        run: aws s3 sync ${{ env.FRONTEND_DIR }}/out s3://${{ secrets.AWS_BUCKET }} --delete
 
       - name: 📊 Deployment Summary
         run: |
-          echo "✅ Frontend image pushed to ECR successfully!"
-          echo "   Tags: latest, ${{ github.sha }}"
+          echo "✅ Deployment to S3 bucket ${{ secrets.AWS_BUCKET }} completed successfully!"
