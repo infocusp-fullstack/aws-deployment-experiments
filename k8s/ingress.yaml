@@ -1,13 +1,40 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: aws-deployment-ingress
+  name: aws-deployment-ingress-frontend
   annotations:
     kubernetes.io/ingress.class: alb
     alb.ingress.kubernetes.io/scheme: internet-facing
     alb.ingress.kubernetes.io/target-type: ip
-    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}]'
+    alb.ingress.kubernetes.io/group.name: aws-deployments
+    alb.ingress.kubernetes.io/group.order: "2"
+    alb.ingress.kubernetes.io/healthcheck-path: /
 spec:
+  ingressClassName: alb
+  rules:
+    - http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend-service
+                port:
+                  number: 80
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: aws-deployment-ingress-backend
+  annotations:
+    kubernetes.io/ingress.class: alb
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/group.name: aws-deployments
+    alb.ingress.kubernetes.io/group.order: "1"
+    alb.ingress.kubernetes.io/healthcheck-path: /api/health
+spec:
+  ingressClassName: alb
   rules:
     - http:
         paths:
@@ -16,12 +43,5 @@ spec:
             backend:
               service:
                 name: backend-service
-                port:
-                  number: 80
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: frontend-service
                 port:
                   number: 80
