@@ -271,9 +271,14 @@ cleanup-cluster-lb:
 		printf "$(YELLOW)  Deleting target group: $$ARN$(RESET)\n"; \
 		aws elbv2 delete-target-group --target-group-arn "$$ARN" --profile $(AWS_PROFILE) 2>/dev/null || true; \
 	done; \
-	SG_IDS=$$(aws ec2 describe-security-groups --profile $(AWS_PROFILE) \
-		--filters "Name=tag:elbv2.k8s.aws/cluster,Values=$(CLUSTER_NAME)" \
-		--query 'SecurityGroups[].GroupId' --output text 2>/dev/null); \
+	SG_IDS=$$(( \
+		aws ec2 describe-security-groups --profile $(AWS_PROFILE) \
+			--filters "Name=tag:elbv2.k8s.aws/cluster,Values=$(CLUSTER_NAME)" \
+			--query 'SecurityGroups[].GroupId' --output text 2>/dev/null; \
+		aws ec2 describe-security-groups --profile $(AWS_PROFILE) \
+			--filters "Name=tag-key,Values=kubernetes.io/cluster/$(CLUSTER_NAME)" \
+			--query 'SecurityGroups[].GroupId' --output text 2>/dev/null \
+	) | tr ' ' '\n' | sort -u | tr '\n' ' '); \
 	if [ -n "$$SG_IDS" ]; then \
 		printf "$(YELLOW)⏳ Waiting 20s for SGs to be released...$(RESET)\n"; \
 		sleep 20; \
